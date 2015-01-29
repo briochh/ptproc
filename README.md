@@ -1,2 +1,2 @@
 # ptproc
-Some pytough processing scripts 
+Some pytough processing scripts, badly developed by Brioch Hemmings at the Univesity of Bristol (UOB). 
