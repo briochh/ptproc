@@ -38,7 +38,7 @@ def simple_readres( modelname, savevtk=False, tough2_input=None, geom_data=None,
     else: dat=tough2_input
 
     if geom_data is None:
-        geo=mulgrid('2dgrd.dat') # geometry from gempetry file
+        geo=mulgrid('grd.dat') # geometry from gempetry file
     else: geo=geom_data    
 
     if results is None:
