@@ -23,13 +23,35 @@ import scipy.constants
 import shutil
 import time
 import os
+import gzip
 
 
 def simple_readres( modelname, savevtk=False, tough2_input=None, geom_data=None, results=None):
-    mod=modelname
-    current_d=os.getcwd()
-    print os.getcwd()
-    os.chdir(mod)
+    """Easy reading of TOUGH2 results into pyTOUGH.  Option to write out vtk results files. Will return pyTOUGH results object if desired.
+    
+    Usage: 
+    
+    results=simple_readres(modelname, kwargs)
+    
+    modelname = directory name of model as string, e.g. "20150202_1"
+    
+    
+    Optional kwargs:
+    
+    savevtk: flag to save vtk results files [default=False]
+    
+    tough2_input: provide the name of the tough2 input file [dafault="flow2.inp"]
+    
+    geom_data: provide name of pyTOUGH geometry data file ["grd.dat"]
+    
+    results: if results object already exists [None]
+    
+    """    
+    mod=modelname # define modelname
+    current_d=os.getcwd() # find current directory 
+    print os.getcwd() 
+    os.chdir(mod) # change to model directory
+    print('Reading '+mod+' results from: ') #
     print os.getcwd()
     ## read output file
     t0=time.clock()
@@ -38,11 +60,15 @@ def simple_readres( modelname, savevtk=False, tough2_input=None, geom_data=None,
     else: dat=tough2_input
 
     if geom_data is None:
-        geo=mulgrid('grd.dat') # geometry from gempetry file
+        geo=mulgrid('grd.dat') # geometry from geometry file
     else: geo=geom_data    
 
     if results is None:
-        results=t2listing('flow2.out') # read output file
+        resfile='flow2.out'
+#        resfile=gzip.open('flow2.out.gz','r').read()
+        results=t2listing(resfile) # read output file
+    else:
+        results=results
     
     grid=dat.grid # define input grid
     t1=time.clock()
@@ -54,6 +80,7 @@ def simple_readres( modelname, savevtk=False, tough2_input=None, geom_data=None,
         os.makedirs('results')
     os.chdir('results')
     
+    ## save vtks...
     if savevtk:
        t0=time.clock()
        results.write_vtk(geo,mod+'_out.vtk',grid=grid,flows=True, time_unit='y')
