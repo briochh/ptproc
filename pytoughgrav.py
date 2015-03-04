@@ -207,9 +207,7 @@ def grid1D( modelname, basefile, parameter, perm=5.0e-13, poro=0.34, rp={'type':
     #dat.output_times['time']=[1000.0,3600.0,8.6400e+04,3.1558e+07,3.1558e+08,3.1558e+09,3.1558e+10]
     #dat.output_times['num_times_specified']=7
     #dat.output_times['num_times']=7
-    
-    
-           
+      
     # write vtk of input information
     grid.write_vtk(geo,param+'/'+mod+'/inparam.vtk',wells=True)
        
@@ -217,7 +215,217 @@ def grid1D( modelname, basefile, parameter, perm=5.0e-13, poro=0.34, rp={'type':
     dat.write(param+'/'+mod+'/flow2.inp')      
     shutil.copy('C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/batching/base/1D_20140620_2_py_it',param+'/'+mod+'/'+mod)
 
-
+def geo2D( modelname, length=500., depth=500., width=1., celldim=10., origin=([0,0,0]), xcells=None,  zcells=None , surface= None ):
+    """ Function to generate a 2D grid tough2 grid."""
+    mod=modelname
+    if xcells is None:
+        xcells=[celldim]*int((length/celldim))
+        
+    if zcells is None:
+        zcells=[celldim]*int((depth/celldim))
+    dy=[width]
+    #zcells=[10]*34+[2]*80+[10]*19+[2]*30+[10]*25
+    geo = mulgrid().rectangular(xcells,dy,zcells, origin=origin, atmos_type =0, 
+    convention = 2 )  # creates geometry 20 cells that are 500 m width in x,
+    # 1 cell 1000 m width in y
+    # 20 cells 100 m high in z  
+    # to make use of more possible grid names add char=ascii_lowercase+ascii_uppercase
+    geo.atmosphere_volume= 1.0e50 # change volume of atmos cell to 1e50
+    if surface is not None:
+        geo.fit_surface(surface, silent=True, layer_snap=2.0) # fit topograpghy surface
+    
+    # write geometry to output file 
+    return geo
+    
+def grid2D(modelname,geo,dat,rocks,boundcol,lpregion=[[0,0,0],[0,0,0]],satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004):
+    """ Function to add TOUGH2 data to geometry"""
+    grid = t2grid().fromgeo(geo)
+    atmos=grid.atmosphere_blocks
+    for rock in rocks:
+        grid.add_rocktype(rock) 
+    # loop over every element block in the grid
+    for blk in grid.blocklist[0:]:
+        if blk not in atmos:
+            col=geo.column[geo.column_name(str(blk))] # column containing current block
+            tlay=geo.column_surface_layer(col)    
+            hmax=geo.block_surface(tlay,col)
+            lay=geo.layer[geo.layer_name(str(blk))] # layer containing current block
+            if col in boundcol: # if block is in lateral boundary columns
+                rocktype='nocp '
+                pmx=grid.rocktype[rocktype].permeability[0]*np.exp(-pmx_lamda*(hmax-blk.centre[2])) # calculating depth dependent permeability modifier
+                initP=atmosP
+                initSG=0.99
+                initT=25.0
+                rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,infvol=True)
+            elif (blk.centre[2] > lpregion[0][2] and 
+                blk.centre[2] <= lpregion[1][2] and 
+                blk.centre[0] > lpregion[0][0] and 
+                blk.centre[0] <= lpregion[1][0]):
+                rocktype='lp   '
+                pmx=None
+                initP=atmosP
+                initSG=0.0
+                initT=25.0                
+                rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx)                  
+            else:
+                rocktype='hp   '
+                pmx=grid.rocktype[rocktype].permeability[0]*np.exp(-pmx_lamda*(hmax-blk.centre[2]))
+                initP=atmosP
+                initSG=0.0
+                initT=25.0                
+                rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx)
+            if blk.centre[2] < satelev:
+                initP=1.013e5+(997.0479*9.81*abs(blk.centre[2]))
+                initSG=0.0
+                initT=25.0
+                pmx=None
+                rockandincon(blk,grid,dat,None,initP,initSG,initT,pmx)
+        else:
+            rocktype='atmos'
+            pmx=None           
+            initP=atmosP
+            initSG=0.99 # initial gas saturation  
+            initT=25.0 # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
+            rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx)
+    return grid
+        
+def rockandincon(blk,grid,dat,rocktype,P,SG,T,pmx,infvol=False):   
+    if rocktype is not None:
+        blk.rocktype=grid.rocktype[rocktype]
+    dat.incon[str(blk)]=[None,[P,SG,T]]
+    if pmx is not None:
+        grid.block[(str(blk))].pmx=pmx
+    if infvol:
+        grid.block[str(blk)].volume=1E50
+    
+def topsurf(surfpath,delim='\t',headerlines=1,width=10):
+    """ reads and reshapes surface profile for use in 2D model """
+    ## top surface
+    surf = np.loadtxt(surfpath,delimiter=delim,skiprows=headerlines)
+    #np.loadtxt(r'C:\Users\glbjch\Local Documents\Work\Modelling\Pytough\2Ddev\2dprof.txt', delimiter='\t', skiprows=1) # load surface file
+    halfwidth=width/2
+    neghalf=-halfwidth
+    
+    minw=neghalf*np.ones((surf.shape[0],1)) # adapt to min max of y (-5,+5)
+    maxw=halfwidth*np.ones((surf.shape[0],1))
+    surf=np.concatenate(((np.concatenate((
+    np.hsplit(surf,2)[0],minw,np.hsplit(surf,2)[1]),axis=1)),
+    (np.concatenate((np.hsplit(surf,2)[0],maxw,np.hsplit(surf,2)[1]),axis=1))),
+    axis=0)
+    return surf
+def makeradial(geo,grid,width=1.):
+    """turn 2D grid into radial grid about x=0"""
+    if grid is not None:    
+        for blk in grid.blocklist[1:]:
+            blk.volume=blk.volume*2.*np.pi*blk.centre[0]/width
+            #col=geo.column[geo.column_name(str(blk))] # column containing current block
+    
+        for conn in grid.connection.values():
+            #print conn
+            #print conn.direction
+            if conn.direction==3:
+                R=conn.block[0].centre[0]
+            elif conn.direction==1:
+                cellRd=zip([blk.centre[0] for blk in conn.block],[cdist for cdist in conn.distance])
+                cellRd.sort()
+                R=sum(cellRd[0])
+            conn.area=2*np.pi*R*conn.area/width
+    
+    for col in geo.columnlist:
+        col.area=2*np.pi*col.centre[0]*col.area/width
+           
+def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0942e5):
+    dat.clear_generators()
+    f = open(mod+'/genertot.txt','w')
+    f.write('Model = '+mod+'\n')
+    allgens=[]
+    cols=[col for col in geo.columnlist]
+    if elev_m is None:
+        f.write('Constant generation ='+str(constant)+' kg/s/m2\n')
+        for col in cols:
+            lay=geo.column_surface_layer(col)
+            blkname=geo.block_name(lay.name,col.name)
+            gx=constant
+            gxa=col.area*gx
+            gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gxa, ex=enthalpy)
+            dat.add_generator(gen)
+            allgens.append(gxa)
+    else:
+        f.write('Elevation dependent generation \n'
+                'gen =' +str(elev_m)+ '*z +' +str(elev_c)+ '\n')
+        for col in cols:
+            lay=geo.column_surface_layer(col)
+            blkname=geo.block_name(lay.name,col.name)
+            gx=(grid.block[blkname].centre[2]*elev_m)+elev_c
+            if gx < mingen:
+                gx=mingen
+            gxa=col.area*gx
+            gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gxa, ex=enthalpy)
+            dat.add_generator(gen)
+            allgens.append(gxa)
+    allgens=np.array(allgens)
+    gensum=np.sum(allgens)
+    f.write('Total generation in model = '+str(gensum)+' kg/s\n')
+    f.close()
+    
+def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/2Ddev/rand.dat",season_bias=0.65,length=100,
+                 wavelength=1,maxlength=3e5,new_rand=False,constant=7.7354e-6,
+                 elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0942e5):
+    """define time dependent generation rate for recharge"""
+    dat.clear_generators()
+    yrsec=3600*24*365.25
+    wavelength=wavelength*yrsec
+    length=length*yrsec
+    maxlength=maxlength*yrsec
+    times=[0.0]+np.arange((wavelength/2),length,wavelength/2).tolist()+[length,maxlength]
+    numt=len(times)
+    fm=elev_m
+    fc=elev_c
+    mult=season_bias
+    
+    allgens=[]
+    if new_rand:
+        ts=[]
+        for i in xrange(0,numt-3,2): ts=ts+[random.gauss(1,0.31)]
+    else: ts=np.loadtxt(ts) # load random data file
+    np.savetxt(mod+'/rand.dat',ts)
+    
+    for col in geo.columnlist:
+        gxc=[]
+        lay=geo.column_surface_layer(col)
+        blkname=geo.block_name(lay.name,col.name)
+        if elev_m is None:
+            gx=constant
+        else:
+            gx=(grid.block[blkname].centre[2]*fm)+fc
+        if gx < mingen: gx=mingen# for elevation dependant recharge!
+        for i in xrange(0,numt-3,2):
+            highgx=((1+mult)*((grid.block[blkname].centre[2]*fm)+(fc)))*ts[i/2]
+            if highgx < (1+mult)*mingen: highgx=(1+mult)*mingen
+            lowgx=((1-mult)*((grid.block[blkname].centre[2]*fm)+(fc)))*ts[i/2]
+            if lowgx < (1-mult)*mingen: lowgx=(1-mult)*mingen
+            gxc=gxc+[lowgx,highgx]
+    
+        gxc=gxc+[gx,gx]
+        ex=numt*[1.0942e5]
+        gxa=np.multiply(col.area,gxc).tolist()
+        allgens.append(gxa)
+        gen=t2generator(name=' q'+col.name,block=blkname,type='COM1',gx=None,ex=None,hg=None,fg=None, rate=gxa, enthalpy=ex,   time=times,ltab=numt,itab=numt-1)
+        #gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gx*col.area, ex=1.0942e5)
+        dat.add_generator(gen)
+    
+    allgens=np.array(allgens)
+    gensum=sum(row[:] for row in allgens)
+    tforplot=[times[0]]
+    tforplot=np.append(tforplot,[2*[j] for j in times[1:-1]]+[times[-2]+yrsec])
+    tforplot=np.hstack(tforplot)
+    gforplot=[2*[j] for j in gensum[0:-1]]
+    gforplot=np.hstack(gforplot)
+    plt.figure()
+    plt.plot(tforplot,gforplot)
+    plt.savefig(mod+'/rech.pdf')
+    np.savetxt(mod+'/genertot.txt',gforplot)
+    
         
 def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=None, geom_data=None, results=None, fall=None):
     """ Function to read pytough results and calculate simulated changes in gravity associated with saturation changes.

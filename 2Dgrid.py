@@ -9,8 +9,11 @@ from t2grids import *
 from t2data import * # import classes and routines for creating TOUGH2 files
 from t2incons import *
 import os
+import time
 
-mod='20140618_1_py_it'
+t0=time.clock()
+os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Pytough")
+mod='20150226_1_old'
 if not os.path.exists(mod):
     os.makedirs(mod)
 
@@ -69,6 +72,7 @@ rp={'type':11, 'parameters':[0.1,0.0,0.0,0.5,0.0,None,1.0]}
 norp={'type':5, 'parameters':[]}
 cp={'type':11, 'parameters':[0.0,-5000.0,0.001618,0.85,None,None,0.0]}
 nocp={'type':1, 'parameters':[0.0,0.0,1.0]}
+
 
 # define rock types and add cp and rp params
 lp=rocktype('lp   ', nad=3, permeability = [1.e-16]*2+[1e-16],
@@ -143,32 +147,32 @@ dat.incon.clear
 initP=1.013e5
 initSG=0.99
 initT=25.0
-cond=[[0.0,0.0,0.0],[1.013e5,initSG,initT]]
+cond=[None,[1.013e5,initSG,initT]]
 dat.incon[geo.block_name_list[0]]=cond
 for blk in grid.blocklist[1:]:
     if grid.block[str(blk)].rocktype==nocp:
        initP=1.013e5
        initSG=0.99
        initT=25.0
-       cond=[[0.0,0.0,0.0],[1.013e5,initSG,initT]]
+       cond=[None,[1.013e5,initSG,initT]]
        dat.incon[str(blk)]=cond
     elif blk.centre[2] < 0.0:
        initP=1.013e5+(997.0479*9.81*abs(blk.centre[2]))
        initSG=0.0
        initT=25.0
-       cond=[[0.0,0.0,0.0],[initP,initSG,initT]]
+       cond=[None,[initP,initSG,initT]]
        dat.incon[str(blk)]=cond
     elif grid.block[str(blk)].rocktype==lp:
        initP=1.013e5
        initSG=0.0
        initT=25.0
-       cond=[[0.0,0.0,0.0],[1.013e5,initSG,initT]]
+       cond=[None,[1.013e5,initSG,initT]]
        dat.incon[str(blk)]=cond
     else:
        initP=1.013e5
        initSG=0.0
        initT=25.0
-       cond=[[0.0,0.0,0.0],[1.013e5,initSG,initT]]
+       cond=[None,[1.013e5,initSG,initT]]
        dat.incon[str(blk)]=cond 
        
        
@@ -202,8 +206,8 @@ for col in cols:
     gxc=[gx]+((numt-3)/2)*[lowgx,highgx]+[gx,gx]
     ex=numt*[1.0942e5]
     gxa=np.multiply(col.area,gxc).tolist()
-    gen=t2generator(name=' q'+col.name,block=blkname,type='COM1',gx=None,ex=None,hg=None,fg=None, rate=gxa, enthalpy=ex, time=times,ltab=numt,itab=numt-1)
-    #gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gx*col.area, ex=1.0942e5)
+    #gen=t2generator(name=' q'+col.name,block=blkname,type='COM1',gx=None,ex=None,hg=None,fg=None, rate=gxa, enthalpy=ex, time=times,ltab=numt,itab=numt-1)
+    gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gx*col.area, ex=1.0942e5)
     dat.add_generator(gen)
     
 
@@ -215,6 +219,6 @@ grid.write_vtk(geo,mod+'/inparam.vtk',wells=True)
    
 # write tough2 input file   
 dat.write(mod+'/flow2.inp')
-
+print time.clock()-t0
 
 
