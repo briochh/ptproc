@@ -16,12 +16,12 @@ from t2grids import *
 from t2data import * # import classes and routines for creating TOUGH2 files
 from t2incons import *
 from t2listing import *
-
+t0=time.clock()
 plt.close('all')
 
 read=True ########### I N P U T #########################
 save=True ########### I N P U T #########################
-savevtk=False ########### I N P U T #########################
+savevtk=True ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
 
 def anagrams(word):
@@ -42,10 +42,10 @@ if __name__ == "__main__":
 
 def readfiles(read):
     if read:
-        geo=mulgrid('2dgrd.dat') ########### I N P U T #########################
+        geo=mulgrid('grd.dat') ########### I N P U T #########################
         dat=t2data('flow2.inp') ########### I N P U T #########################
         grid=dat.grid # define input grid
-        results=t2listing('flow2.out') ########### I N P U T #########################
+        results=None ########### I N P U T #########################
         return geo,dat,grid,results
 
 
@@ -55,7 +55,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20140613_2_py_it' ########### I N P U T #########################
+    mod='20150304_1_rad_main' ########### I N P U T #########################
 
 
     
@@ -105,5 +105,5 @@ if batch:
         geo,dat,grid,results=readfiles(read)
         ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo,fall=fall)
     fall.close()
-
+print 'time to run =', time.clock()-t0
        

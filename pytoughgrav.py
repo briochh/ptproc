@@ -441,7 +441,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     else: dat=tough2_input
 
     if geom_data is None:
-        geo=mulgrid('2dgrd.dat') # geometry from gempetry file
+        geo=mulgrid('grd.dat') # geometry from gempetry file
     else: geo=geom_data    
 
     if results is None:
@@ -637,9 +637,9 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         
         if save:  
            t0=time.clock() 
-           if not os.path.exists('mark2'):
-               os.makedirs('mark2')
-               os.chdir('mark2')
+           #if not os.path.exists('mark2'):
+           #    os.makedirs('mark2')
+           #    os.chdir('mark2')
            zt_density_matrix=np.concatenate((
            [np.concatenate((np.array([0]),times))],
             np.concatenate((zlist.reshape(len(zlist),1),wellro),
