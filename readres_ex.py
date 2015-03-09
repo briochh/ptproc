@@ -21,7 +21,7 @@ plt.close('all')
 
 read=True ########### I N P U T #########################
 save=True ########### I N P U T #########################
-savevtk=True ########### I N P U T #########################
+savevtk=False ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
 
 def anagrams(word):
@@ -44,9 +44,9 @@ def readfiles(read):
     if read:
         geo=mulgrid('grd.dat') ########### I N P U T #########################
         dat=t2data('flow2.inp') ########### I N P U T #########################
-        grid=dat.grid # define input grid
         results=None ########### I N P U T #########################
-        return geo,dat,grid,results
+        #grid=dat.grid # define input grid
+        return geo,dat,results
 
 
 if batch_or_straight in anas+['b','ba','bat','batc']:
@@ -55,7 +55,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150304_1_rad_main' ########### I N P U T #########################
+    mod='20150304_1_rad_testing' ########### I N P U T #########################
 
 
     
@@ -67,16 +67,17 @@ if not batch:
     print 'running in straight mode (',batch_or_straight,')'
     print 'model=',mod
     os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/'+mod)
-    geo,dat,grid,results=readfiles(read)
+    if read:    
+        geo,dat,results=readfiles(read)
     ## define well locations
-    wellx=[50.0,500.0,1750,2200,2650]##5.0,50.0,500,1750,2200,2650#######################################################
-    #wellx=[0.5]################################################################
+    #wellx=[50.0,500.0,1750,2200,2650]##5.0,50.0,500,1750,2200,2650#######################################################
+    wellx=[50.0]################################################################
     welly=[0.5]*len(wellx) # make y coords same length as x coords
     wells=np.hstack((np.transpose([wellx]),np.transpose([welly])))
     t1=time.clock()
     t=t1-t0
     print 'time2setup=',t
-    ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo)
+    results=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo)
 
 #################################################################
 ######################### BATCH MODE ############################
@@ -102,7 +103,7 @@ if batch:
            os.chdir(mod+'/main')
         else:
            os.chdir(mod)
-        geo,dat,grid,results=readfiles(read)
+        geo,dat,results=readfiles(read)
         ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo,fall=fall)
     fall.close()
 print 'time to run =', time.clock()-t0

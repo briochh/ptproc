@@ -25,6 +25,7 @@ import scipy.constants
 import shutil
 import time
 import os
+import copy
 
 mpl.rcParams['xtick.labelsize']=14
 
@@ -442,12 +443,14 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
 
     if geom_data is None:
         geo=mulgrid('grd.dat') # geometry from gempetry file
-    else: geo=geom_data    
+    else: geo=geom_data
 
     if results is None:
         results=t2listing('flow2.out') # read output file
     
     grid=dat.grid # define input grid
+    width=geo.bounds[1][1]-geo.bounds[0][1]   
+    makeradial(geo,None,width=width)
     t1=time.clock()
     t=t1-t0
     print 'time2read .out=',t
@@ -569,7 +572,11 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
                     twellrho.append([blkrho])
                     if blk is not wellblk[-1]:
                         #wellvol=wellvol+blk.volume
-                        twell_water_mass=twell_water_mass+(blkrho*blk.volume)
+                        col=geo.column[geo.column_name(str(blk))]
+                        dummyvolume=width*np.abs(col.bounding_box[1][0]-col.bounding_box[0][0])*(blk.volume/col.area)
+                        #print geo.column[geo.column_name(str(blk))].area
+                        #print 'dummyvolume=',dummyvolume
+                        twell_water_mass=twell_water_mass+(blkrho*dummyvolume)
     #                wellsl=np.concatenate((wellsl,[outsl1[1]]))
     #                wellro=np.concatenate((wellro,[outsl1[1]*density*blk.rocktype.porosity]))
                 i+=1 # inrement to next element
@@ -589,7 +596,8 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     
         # Bouguer slab gravity approximations
         well_water_mass=np.array(well_water_mass)
-        microgal=well_water_mass*2*np.pi*scipy.constants.G*(10**8)/col.area   
+        #print ((col.area*width)/(2*np.pi*col.centre[0]))
+        microgal=well_water_mass*2*np.pi*scipy.constants.G*(10**8)/((col.area*width)/(2*np.pi*col.centre[0])) # bit of trickery to get 2D distribution....   
         microgal=microgal-microgal[0] # gravity difference    
         
         t1=time.clock()
@@ -788,6 +796,8 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
        t1=time.clock()
        t=t1-t0
        print 'time2writevtks',t
+
+    return results
 
 def grate( modelname, in_ts, winlen=[2,5,10], save=True, input_in="yrs", fall=None, fallmax=None ):
     """ grate( timeseries, window_length, save_option, input_in )\n
