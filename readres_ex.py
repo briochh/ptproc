@@ -19,7 +19,7 @@ from t2listing import *
 t0=time.clock()
 plt.close('all')
 
-read=True ########### I N P U T #########################
+read=False ########### I N P U T #########################
 save=True ########### I N P U T #########################
 savevtk=False ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
@@ -40,13 +40,22 @@ if __name__ == "__main__":
         anas=anas+[i]
         
 
-def readfiles(read):
+def readfiles(read,geo,dat,results):
+    t0=time.clock()
     if read:
         geo=mulgrid('grd.dat') ########### I N P U T #########################
         dat=t2data('flow2.inp') ########### I N P U T #########################
-        results=None ########### I N P U T #########################
+        results=t2listings('flow2.out')
+    else:
+        try: geo 
+        except NameError: geo=None
+        try: dat
+        except NameEror: dat=None
+        try: results
+        except NameError: results=None
         #grid=dat.grid # define input grid
-        return geo,dat,results
+    return geo,dat,results
+    print 'time to read=',(time.clock()-t0)
 
 
 if batch_or_straight in anas+['b','ba','bat','batc']:
@@ -55,7 +64,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150304_1_rad_testing' ########### I N P U T #########################
+    mod='20150304_1_rad_main' ########### I N P U T #########################
 
 
     
@@ -66,12 +75,11 @@ if not batch:
     t0=time.clock()
     print 'running in straight mode (',batch_or_straight,')'
     print 'model=',mod
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/'+mod)
-    if read:    
-        geo,dat,results=readfiles(read)
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/'+mod)    
+    geo,dat,results=readfiles(read,geo,dat,results)
     ## define well locations
-    #wellx=[50.0,500.0,1750,2200,2650]##5.0,50.0,500,1750,2200,2650#######################################################
-    wellx=[50.0]################################################################
+    wellx=[50.0,500.0,1750,2200,2650]##5.0,50.0,500,1750,2200,2650#######################################################
+    #wellx=[50.0]################################################################
     welly=[0.5]*len(wellx) # make y coords same length as x coords
     wells=np.hstack((np.transpose([wellx]),np.transpose([welly])))
     t1=time.clock()
