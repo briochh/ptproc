@@ -17,6 +17,7 @@ import time
 plt.close('all')
 batch_or_straight='str' ########### I N P U T ######################### 
 save=True ########### I N P U T #########################
+num=5
 
 def anagrams(word):
     """ Generate all of the anagrams of a word. """ 
@@ -40,9 +41,9 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20140613_2_py_it' ########### I N P U T #########################
+    mod='20150304_1_rad_main' ########### I N P U T #########################
 
-infile='axsym_int_microgal1.dat' #'gravdiff1.dat')  ########### I N P U T #########################
+infile='axsym_int_microgal'+str(num)+'.dat' #'gravdiff1.dat')  ########### I N P U T #########################
 input_times='yrs' #yrs ########### I N P U T #########################
 windows=[2,5,10]  ########### I N P U T #########################
 
@@ -52,9 +53,9 @@ if not batch:
     t0=time.clock()
     print 'running gravrates in straight mode (',batch_or_straight,')'
     print 'model=',mod
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/'+mod+'/results/mark2')
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/'+mod+'/results')
     indata=np.loadtxt(infile)
-    mod=mod+'_1'
+    mod=mod+str(num)
     ptg.grate(mod,indata,windows,input_in=input_times,save=save)
 
 
