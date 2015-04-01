@@ -234,7 +234,7 @@ def geo2D( modelname, length=500., depth=500., width=1., celldim=10., origin=([0
     geo.atmosphere_volume= 1.0e50 # change volume of atmos cell to 1e50
     if surface is not None:
         geo.fit_surface(surface, silent=True, layer_snap=2.0) # fit topograpghy surface
-    
+    geo.write(mod+'/grd.dat')
     # write geometry to output file 
     return geo
     
@@ -257,6 +257,7 @@ def grid2D(modelname,geo,dat,rocks,boundcol,lpregion=[[0,0,0],[0,0,0]],satelev=0
                 initP=atmosP
                 initSG=0.99
                 initT=25.0
+                #send to function to assign a blocktype and initial condition and pmx.
                 rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,infvol=True)
             elif (blk.centre[2] > lpregion[0][2] and 
                 blk.centre[2] <= lpregion[1][2] and 
@@ -367,6 +368,7 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,min
     allgens=np.array(allgens)
     gensum=np.sum(allgens)
     f.write('Total generation in model = '+str(gensum)+' kg/s\n')
+    f.write('Total generation rate per m2 = '+str(gensum/geo.area)+' kg/s\n')
     f.close()
     
 def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/2Ddev/rand.dat",season_bias=0.65,length=100,
