@@ -284,7 +284,7 @@ def grid2D(modelname,geo,dat,rocks,boundcol,lpregion=[[0,0,0],[0,0,0]],satelev=0
                 rockandincon(blk,grid,dat,None,initP,initSG,initT,pmx)
         else:
             rocktype='atmos'
-            pmx=None           
+            pmx=grid.rocktype[rocktype].permeability[0]          
             initP=atmosP
             initSG=0.99 # initial gas saturation  
             initT=25.0 # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
