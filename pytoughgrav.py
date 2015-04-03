@@ -264,7 +264,7 @@ def grid2D(modelname,geo,dat,rocks,boundcol,lpregion=[[0,0,0],[0,0,0]],satelev=0
                 blk.centre[0] > lpregion[0][0] and 
                 blk.centre[0] <= lpregion[1][0]):
                 rocktype='lp   '
-                pmx=None
+                pmx=grid.rocktype[rocktype].permeability[0]
                 initP=atmosP
                 initSG=0.0
                 initT=25.0                
@@ -280,11 +280,15 @@ def grid2D(modelname,geo,dat,rocks,boundcol,lpregion=[[0,0,0],[0,0,0]],satelev=0
                 initP=1.013e5+(997.0479*9.81*abs(blk.centre[2]))
                 initSG=0.0
                 initT=25.0
-                pmx=None
+                pmx=None # dont change pmx
                 rockandincon(blk,grid,dat,None,initP,initSG,initT,pmx)
         else:
             rocktype='atmos'
+<<<<<<< HEAD
             pmx=grid.rocktype[rocktype].permeability[0]          
+=======
+            pmx=grid.rocktype[rocktype].permeability[0]           
+>>>>>>> cf14b6a30ce0d90cd6633ced03855ab8ecf0aeba
             initP=atmosP
             initSG=0.99 # initial gas saturation  
             initT=25.0 # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
@@ -305,7 +309,7 @@ def topsurf(surfpath,delim='\t',headerlines=1,width=10):
     ## top surface
     surf = np.loadtxt(surfpath,delimiter=delim,skiprows=headerlines)
     #np.loadtxt(r'C:\Users\glbjch\Local Documents\Work\Modelling\Pytough\2Ddev\2dprof.txt', delimiter='\t', skiprows=1) # load surface file
-    halfwidth=width/2
+    halfwidth=width/2.0
     neghalf=-halfwidth
     
     minw=neghalf*np.ones((surf.shape[0],1)) # adapt to min max of y (-5,+5)
