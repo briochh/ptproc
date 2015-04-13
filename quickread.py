@@ -12,8 +12,8 @@ from t2listing import *
 import os
 
 
-os.chdir('/Users/briochh/GoogleDrive/Molly/testing')
-mod='testing_hotbase' # define model name
+os.chdir(r'C:\Users\glbjch\Local Documents\Work\Modelling\Steffi_GRAV')
+mod='20150327_1' # define model name
 os.chdir(mod)
 if not os.path.exists('results'): 
     os.makedirs('results')   
