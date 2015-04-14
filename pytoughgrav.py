@@ -497,9 +497,11 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     xzarea=dz*dx # array of cell x by z area
     xs=np.array([c[0] for c in cen])
     zs=np.array([c[2] for c in cen])
-    X,Z=np.meshgrid(xs,zs,sparse=True,copy=False)
-    print X
-    print Z
+    xi=np.linspace(xs.min(), xs.max(), np.unique(xs).shape[0])
+    zi=np.linspace(zs.min(), zs.max(), np.unique(zs).shape[0])
+    #X,Z=np.meshgrid(xs,zs,sparse=True,copy=False)
+    #print X
+    #print Z
     ## numerical solution of ring integral from 0 to 2pi slightly quicker
     ## set up arrays of theta increments
     #ntheta=1000.0 # number of increments
@@ -630,8 +632,8 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         ## Plot results for current well
         t0=time.clock()
         times=results.times[0:count]/yrsec # convert times calculted to yrs 
-        gcont=ml.griddata(xs,zs,np.array(dg/xzarea)*6.67e-3,X,Z,interp='linear')
-        plt.pcolormesh(X,Z,gcont,cmap=cm.jet_r,vmin=0.0,vmax=1.0,shading='flat')
+        gcont=ml.griddata(xs,zs,np.array(dg/xzarea)*6.67e-3,xi,xi,interp='linear')
+        plt.pcolormesh(xi,zi,gcont,cmap=cm.jet_r,vmin=0.0,vmax=1.0,shading='flat')
         # test plot of contibutions
         im=plt.figure(figsize=[8,3.6])
         plt.scatter(xs, zs, c=np.array(dg/xzarea)*6.67e-3, edgecolor='none', marker='s')
