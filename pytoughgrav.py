@@ -17,6 +17,7 @@ from t2listing import *
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.cm as cm
+import matplotlib.mlab as ml
 import numpy as np
 import bisect
 from scipy.interpolate import interp1d
@@ -380,19 +381,29 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     wavelength=wavelength*yrsec
     length=length*yrsec
     maxlength=maxlength*yrsec
-    times=[0.0]+np.arange((wavelength/2),length,wavelength/2).tolist()+[length,maxlength]
-    numt=len(times)
     fm=elev_m
     fc=elev_c
     mult=season_bias
+    knownts=False    
     
     allgens=[]
     if new_rand:
         ts=[]
         for i in xrange(0,numt-3,2): ts=ts+[random.gauss(1,0.31)]
-    else: ts=np.loadtxt(ts) # load random data file
-    np.savetxt(mod+'/rand.dat',ts)
-    
+    elif isinstance(ts,basestring) and os.path.isfile(ts): 
+        ts=np.loadtxt(ts) # load random data file
+        np.savetxt(mod+'/rand.dat',ts)
+    elif type(ts).__module__ ==  np.__name__:
+        knownts=True
+        np.savetxt(mod+'/init_rech.dat',ts)
+    #print type(ts)
+    if knownts:
+        #print knownts
+        times=[0.0]+np.cumsum(ts[:,1]).tolist()+[maxlength]
+    else:
+        times=[0.0]+np.arange((wavelength/2),length,wavelength/2).tolist()+[length,maxlength]
+    #print times
+    numt=len(times)    
     for col in geo.columnlist:
         gxc=[]
         lay=geo.column_surface_layer(col)
@@ -402,12 +413,16 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
         else:
             gx=(grid.block[blkname].centre[2]*fm)+fc
         if gx < mingen: gx=mingen# for elevation dependant recharge!
-        for i in xrange(0,numt-3,2):
-            highgx=((1+mult)*((grid.block[blkname].centre[2]*fm)+(fc)))*ts[i/2]
-            if highgx < (1+mult)*mingen: highgx=(1+mult)*mingen
-            lowgx=((1-mult)*((grid.block[blkname].centre[2]*fm)+(fc)))*ts[i/2]
-            if lowgx < (1-mult)*mingen: lowgx=(1-mult)*mingen
-            gxc=gxc+[lowgx,highgx]
+        if knownts:
+            for month in ts:
+                gxc=gxc+[((grid.block[blkname].centre[2]*fm)+(fc))*month[0]]
+        else:
+            for i in xrange(0,numt-3,2):
+                highgx=((1+mult)*((grid.block[blkname].centre[2]*fm)+(fc)))*ts[i/2]
+                if highgx < (1+mult)*mingen: highgx=(1+mult)*mingen
+                lowgx=((1-mult)*((grid.block[blkname].centre[2]*fm)+(fc)))*ts[i/2]
+                if lowgx < (1-mult)*mingen: lowgx=(1-mult)*mingen
+                gxc=gxc+[lowgx,highgx]
     
         gxc=gxc+[gx,gx]
         ex=numt*[1.0942e5]
@@ -417,6 +432,10 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
         #gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gx*col.area, ex=1.0942e5)
         dat.add_generator(gen)
     
+    dat.output_times['time_increment']=2.4192E6
+    dat.output_times['time']=[1.0]+times[1:100]
+    dat.output_times['num_times_specified']=len(dat.output_times['time'])
+    dat.output_times['num_times']=200
     allgens=np.array(allgens)
     gensum=sum(row[:] for row in allgens)
     tforplot=[times[0]]
@@ -427,7 +446,7 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     plt.figure()
     plt.plot(tforplot,gforplot)
     plt.savefig(mod+'/rech.pdf')
-    np.savetxt(mod+'/genertot.txt',gforplot)
+    np.savetxt(mod+'/genertot.txt',np.vstack((tforplot,gforplot)).T)
     
         
 def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=None, geom_data=None, results=None, fall=None):
@@ -478,7 +497,9 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     xzarea=dz*dx # array of cell x by z area
     xs=np.array([c[0] for c in cen])
     zs=np.array([c[2] for c in cen])
-    #X,Z=np.meshgri
+    X,Z=np.meshgrid(xs,zs,sparse=True,copy=False)
+    print X
+    print Z
     ## numerical solution of ring integral from 0 to 2pi slightly quicker
     ## set up arrays of theta increments
     #ntheta=1000.0 # number of increments
@@ -488,7 +509,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     
     ## loop over each gravity survey point given in wellx
     wellno=0
-    for well in wells:
+    for well in [wells[0]]:
         twell=time.clock()
         
         wellno=wellno+1
@@ -551,7 +572,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         
         # loop over results table untill desired time (in years)
         count=0
-        while results.time/yrsec <= 110 and count < results.times.size:
+        while results.time/yrsec <= 2 and count < 1: #results.times.size:
             t0=time.clock()
             print('timestep %d out of %d' % (count+1,results.times.size))
             print results.time/yrsec
@@ -609,7 +630,8 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         ## Plot results for current well
         t0=time.clock()
         times=results.times[0:count]/yrsec # convert times calculted to yrs 
-        
+        gcont=ml.griddata(xs,zs,np.array(dg/xzarea)*6.67e-3,X,Z,interp='linear')
+        plt.pcolormesh(X,Z,gcont,cmap=cm.jet_r,vmin=0.0,vmax=1.0,shading='flat')
         # test plot of contibutions
         im=plt.figure(figsize=[8,3.6])
         plt.scatter(xs, zs, c=np.array(dg/xzarea)*6.67e-3, edgecolor='none', marker='s')

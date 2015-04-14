@@ -16,14 +16,19 @@ from t2grids import *
 from t2data import * # import classes and routines for creating TOUGH2 files
 from t2incons import *
 from t2listing import *
+
+#%% set up
 t0=time.clock()
 plt.close('all')
 
 read=False ########### I N P U T #########################
 save=True ########### I N P U T #########################
-savevtk=False ########### I N P U T #########################
+savevtk=True ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
+modelorigin=(586034.886,1852660.465)
+width=10.0
 
+#%% functions
 def anagrams(word):
     """ Generate all of the anagrams of a word. """ 
     if len(word) < 2:
@@ -45,49 +50,53 @@ def readfiles(read,geo,dat,results):
     if read:
         geo=mulgrid('grd.dat') ########### I N P U T #########################
         dat=t2data('flow2.inp') ########### I N P U T #########################
-        results=t2listings('flow2.out')
+        results=t2listing('flow2.out')
     else:
         try: geo 
         except NameError: geo=None
         try: dat
-        except NameEror: dat=None
+        except NameError: dat=None
         try: results
         except NameError: results=None
         #grid=dat.grid # define input grid
     return geo,dat,results
     print 'time to read=',(time.clock()-t0)
 
-
+#%% setup
 if batch_or_straight in anas+['b','ba','bat','batc']:
     batch=True
     param='wt' ########### I N P U T #########################
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150304_1_rad_main' ########### I N P U T #########################
+    mod='20150327_1_var' ########### I N P U T #########################
 
 
     
 
-###########################################################################
+#%%###########################################################################
 ############################# STRAIGHT MODE ###############################
 if not batch: 
     t0=time.clock()
     print 'running in straight mode (',batch_or_straight,')'
     print 'model=',mod
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/'+mod)    
-    geo,dat,results=readfiles(read,geo,dat,results)
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Steffi_GRAV/'+mod)    
+    geo,dat,results=readfiles(read,None,None,results)#,geo,dat,results)
     ## define well locations
-    wellx=[50.0,500.0,1750,2200,2650]##5.0,50.0,500,1750,2200,2650#######################################################
+    stations=np.genfromtxt('../dev_files/Steffie_station_locs.txt', delimiter=',', dtype=None, skiprows=1, usecols=(0,1) ,names='x,y')
+    station_dists=[np.sqrt(((modelorigin[0]-x)**2 + (modelorigin[1]-y)**2)) for x,y in zip(stations['x'],stations['y'])]
+    station_dists.sort()
+    wellx=station_dists
+    #wellx=[50.0,500.0,1750,2200,2650]##5.0,50.0,500,1750,2200,2650#######################################################
     #wellx=[50.0]################################################################
-    welly=[0.5]*len(wellx) # make y coords same length as x coords
+    welly=[width/2.0]*len(wellx) # make y coords same length as x coords
     wells=np.hstack((np.transpose([wellx]),np.transpose([welly])))
     t1=time.clock()
     t=t1-t0
     print 'time2setup=',t
     results=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo)
 
-#################################################################
+#%%################################################################
 ######################### BATCH MODE ############################
 if batch:
     print 'running in batch mode (',batch_or_straight,')'
