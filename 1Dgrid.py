@@ -10,9 +10,10 @@ from t2grids import *
 from t2data import * # import classes and routines for creating TOUGH2 files
 from t2incons import *
 import os
+import shutil
 
-
-mod='highhigh'
+os.chdir('/Users/briochh/Documents/Workhere/testing')
+mod='1Dtest3'
 if not os.path.exists(mod):
     os.makedirs(mod)
 
@@ -26,16 +27,21 @@ dx=1
 dy=1
 #origin=[0,0,750]
 origin=[0,0,145]
-zcells=[1]*145 
+zcells=[5]+[1]*140 
 #zcells=[10]*34+[2]*80+[10]*19+[2]*30+[10]*25    
 
 geo = mulgrid().rectangular([dx],[dy],zcells, origin=origin, atmos_type =0, 
-convention = 2 )
+convention = 2)
+surface=np.array([[   0. ,   -0.5,  143. ],
+       [   1. ,   -0.5,  143. ],
+       [   0. ,    0.5,  143. ],
+       [   1. ,    0.5,  143. ]])
+geo.fit_surface(surface, silent=True, layer_snap=2.0) # fit topograpghy surface
 
 geo.atmosphere_volume= 1.0e50
 
 # write geometry to output file 
-geo.write(mod+'/2dgrd.dat') 
+geo.write(mod+'/grd.dat') 
 
 ###### MAKE TOUGH GRID
 grid = t2grid().fromgeo(geo)
@@ -45,32 +51,6 @@ grid = t2grid().fromgeo(geo)
 norp={'type':5, 'parameters':[]}
 #cp={'type':11, 'parameters':[0.0,-5000.0,0.001618,0.85,None,None,0.1]}
 nocp={'type':1, 'parameters':[0.0,0.0,1.0]}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -144,32 +124,32 @@ dat.incon.clear()
 initP=1.013e5
 initSG=0.99
 initT=25.0
-cond=[[0.0,0.0,0.0],[1.013e5,initSG,initT]]
+cond=[None,[1.013e5,initSG,initT]]
 dat.incon[geo.block_name_list[0]]=cond
 for blk in grid.blocklist[1:]:
     if grid.block[str(blk)].rocktype==nocp:
        initP=1.013e5
        initSG=0.99
        initT=25.0
-       cond=[[0.0,0.0,0.0],[1.013e5,initSG,initT]]
+       cond=[None,[1.013e5,initSG,initT]]
        dat.incon[str(blk)]=cond
     elif blk.centre[2] < 50.0:
        initP=1.013e5+(997.0479*9.81*abs(50-blk.centre[2]))
        initSG=0.0
        initT=25.0
-       cond=[[0.0,0.0,0.0],[initP,initSG,initT]]
+       cond=[None,[1.013e5,initSG,initT]]
        dat.incon[str(blk)]=cond
     elif grid.block[str(blk)].rocktype==lp:
        initP=1.013e5
        initSG=0.0
        initT=25.0
-       cond=[[0.0,0.0,0.0],[1.013e5,initSG,initT]]
+       cond=[None,[1.013e5,initSG,initT]]
        dat.incon[str(blk)]=cond
     else:
        initP=1.013e5
        initSG=0.0
        initT=25.0
-       cond=[[0.0,0.0,0.0],[1.013e5,initSG,initT]]
+       cond=[None,[1.013e5,initSG,initT]]
        dat.incon[str(blk)]=cond
        
 dat.generator.clear()
@@ -189,10 +169,11 @@ for col in cols:
     count=count+1
     lay=geo.column_surface_layer(col)
     blkname=geo.block_name(lay.name,col.name)
-    gx=(grid.block[blkname].centre[2]*fm)+fc
+    #gx=(grid.block[blkname].centre[2]*fm)+fc
+    gx=fpms
     if gx < mingen: gx=mingen# for elevation dependant recharge!
     ex=1.0942e5
-    gen=t2generator(name=' q'+col.name,block=blkname,type='COM1',gx=gx,ex=ex,hg=None,fg=None)
+    gen=t2generator(name=' q'+col.name,block=blkname,type='COM1',gx=gx*col.area,ex=ex,hg=None,fg=None)
     #gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gx*col.area, ex=1.0942e5)
     dat.add_generator(gen) 
 
@@ -210,3 +191,4 @@ grid.write_vtk(geo,mod+'/inparam.vtk',wells=True)
    
 # write tough2 input file   
 dat.write(mod+'/flow2.inp')      
+shutil.copy('itough_input',mod+'/'+mod)
