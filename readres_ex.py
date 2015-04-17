@@ -21,7 +21,14 @@ from t2listing import *
 t0=time.clock()
 plt.close('all')
 
-read=False ########### I N P U T #########################
+read=True ########### I N P U T #########################
+readgeo=True ########### I N P U T #########################
+geo_fname='grd.dat'
+readdat=True ########### I N P U T #########################
+dat_fname='flow2.inp'
+readresults=True ########### I N P U T #########################
+results_fname='flow2.out'
+
 save=True ########### I N P U T #########################
 savevtk=True ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
@@ -43,24 +50,13 @@ anas=[]
 if __name__ == "__main__":
     for i in anagrams("batch"):
         anas=anas+[i]
-        
 
-def readfiles(read,geo,dat,results):
-    t0=time.clock()
-    if read:
-        geo=mulgrid('grd.dat') ########### I N P U T #########################
-        dat=t2data('flow2.inp') ########### I N P U T #########################
-        results=t2listing('flow2.out')
-    else:
-        try: geo 
-        except NameError: geo=None
-        try: dat
-        except NameError: dat=None
-        try: results
-        except NameError: results=None
-        #grid=dat.grid # define input grid
-    return geo,dat,results
-    print 'time to read=',(time.clock()-t0)
+class ValidationError(Exception):
+    def __init__(self, message, errors):
+        # Call the base class constructor with the parameters it needs
+        super(ValidationError, self).__init__(message)
+        # Now for your custom code...
+        self.errors = errors    
 
 #%% setup
 if batch_or_straight in anas+['b','ba','bat','batc']:
@@ -72,16 +68,24 @@ else:
     mod='20150327_1_var' ########### I N P U T #########################
 
 
-    
-
 #%%###########################################################################
 ############################# STRAIGHT MODE ###############################
 if not batch: 
     t0=time.clock()
     print 'running in straight mode (',batch_or_straight,')'
     print 'model=',mod
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Steffi_GRAV/'+mod)    
-    geo,dat,results=readfiles(read,None,None,results)#,geo,dat,results)
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Steffi_GRAV/'+mod)
+    if read:
+        if readgeo is True: 
+            print 'Reading geometry from '+ geo_fname
+            geo=mulgrid(geo_fname)
+        if readdat is True: 
+            print 'Reading input data from '+ dat_fname
+            dat=t2data(dat_fname) 
+        if readresults is True: 
+            print 'Reading results from '+ results_fname
+            results=t2listing(results_fname)
+    print 'time to read=',(time.clock()-t0)
     ## define well locations
     stations=np.genfromtxt('../dev_files/Steffie_station_locs.txt', delimiter=',', dtype=None, skiprows=1, usecols=(0,1) ,names='x,y')
     station_dists=[np.sqrt(((modelorigin[0]-x)**2 + (modelorigin[1]-y)**2)) for x,y in zip(stations['x'],stations['y'])]
@@ -120,7 +124,16 @@ if batch:
            os.chdir(mod+'/main')
         else:
            os.chdir(mod)
-        geo,dat,results=readfiles(read)
+        if read:
+            if readgeo is True: 
+                print 'Reading geometry from '+ geo_fname
+                geo=mulgrid(geo_fname)
+            if readdat is True: 
+                print 'Reading input data from '+ dat_fname
+                dat=t2data(dat_fname) 
+            if readresults is True: 
+                print 'Reading results from '+ results_fname
+                results=t2listing(results_fname)
         ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo,fall=fall)
     fall.close()
 print 'time to run =', time.clock()-t0

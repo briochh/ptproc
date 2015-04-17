@@ -15,7 +15,7 @@ import matplotlib.mlab as ml
 plt.close('all')
 
 # change directory  
-os.chdir('/Users/briochh/GoogleDrive/Molly')
+os.chdir('/Users/glbjch/Google Drive/Molly')
 data=np.genfromtxt('1dmodeltimes.txt',dtype=None,skiprows=4,names='k,t,Q')
 
 ## read in data
@@ -27,8 +27,8 @@ K,T,Q=data['k'],data['t'],data['Q']
 #
 ## define a grid based on conductivity and heat flux
 X,Y=np.meshgrid(K,Q)
-xi = np.linspace(K.min(), K.max(), np.unique(K).shape[0])
-yi = np.linspace(Q.min(), Q.max(), np.unique(Q).shape[0])
+xi = np.unique(K)
+yi = np.unique(Q)
 #
 ## grid the data onto the new gird
 Ts = ml.griddata(K,Q,T,X,Y,interp='linear')

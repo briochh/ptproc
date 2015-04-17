@@ -21,12 +21,14 @@ import matplotlib.mlab as ml
 import numpy as np
 import bisect
 from scipy.interpolate import interp1d
+from scipy.interpolate import griddata
 import scipy.integrate as integrate
 import scipy.constants
 import shutil
 import time
 import os
 import copy
+import numpy.ma as ma
 
 mpl.rcParams['xtick.labelsize']=14
 
@@ -458,23 +460,20 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
 
     
     t0=time.clock()
-    if tough2_input is None:
-       dat=t2data('flow2.inp') # tough2 input from input file
+    if type(tough2_input) is not t2data:
+        raise TypeError('data needs to be type t2data. Type ' + str(type(geo)) + ' found. You idiot')
     else: dat=tough2_input
-
-    if geom_data is None:
-        geo=mulgrid('grd.dat') # geometry from gempetry file
+    if type(geom_data) is not mulgrid:
+        raise TypeError('data needs to be type mulgrid. Type ' + str(type(geo)) + ' found. You idiot')
     else: geo=geom_data
+    if type(results) is not t2listing:
+        raise TypeError('data needs to be type t2listing. Type ' + str(type(geo)) + ' found. You idiot')
 
-    if results is None:
-        results=t2listing('flow2.out') # read output file
     
     grid=dat.grid # define input grid
     width=geo.bounds[1][1]-geo.bounds[0][1]   
     makeradial(geo,None,width=width)
-    t1=time.clock()
-    t=t1-t0
-    print 'time2read .out=',t
+
     
     ## create directory for results
     if not os.path.exists('results'):
@@ -490,28 +489,37 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     dz=dx=[]
     cen=np.array([]).reshape(0,3)
     for blk in grid.blocklist[1:]:
-        dz=np.concatenate((dz,[geo.layer[geo.layer_name(blk.name)].thickness])) # array of thickness of each block
+        if blk.volume >= 1.0E50:
+            dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E50]))
+        else: dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area])) # array of thickness of each block
+        # dz=np.concatenate((dz,[geo.layer[geo.layer_name(blk.name)].thickness])) # array of thickness of each block
         dx=np.concatenate((dx,[geo.column[geo.column_name(blk.name)].side_lengths[1]])) # array of x direction cell widths
         cen=np.concatenate((cen,[blk.centre]))
     
     xzarea=dz*dx # array of cell x by z area
     xs=np.array([c[0] for c in cen])
     zs=np.array([c[2] for c in cen])
-    xi=np.linspace(xs.min(), xs.max(), np.unique(xs).shape[0])
-    zi=np.linspace(zs.min(), zs.max(), np.unique(zs).shape[0])
-    #X,Z=np.meshgrid(xs,zs,sparse=True,copy=False)
-    #print X
-    #print Z
+    xli=np.unique(xs)
+    zli=np.unique(zs)
+    xi,zi=np.meshgrid(xli,zli)
+    index=[]
+    jndex=[]
+    for xz in zip(xs,zs):
+        index.append(np.where(xz[0]==xi[0])[0][0])
+        jndex.append(np.where(xz[1]==zi[:,0])[0][0])
+        
+        
     ## numerical solution of ring integral from 0 to 2pi slightly quicker
     ## set up arrays of theta increments
     #ntheta=1000.0 # number of increments
     #dtheta=2.0*np.pi/ntheta # length of element of integral
     #thetas=np.arange(0.0,2.0*np.pi,dtheta) #array of integral element lengths
+    print 'time to initialise results=',(time.clock()-t0)
     
-    
+    #%%
     ## loop over each gravity survey point given in wellx
     wellno=0
-    for well in [wells[0]]:
+    for well in wells:
         twell=time.clock()
         
         wellno=wellno+1
@@ -528,17 +536,9 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
             stpoint=0
         else: stpoint=1
         for lay in geo.layerlist[stpoint:]:
-            #print "lay.name =", lay.name
-            #print "col.name =",col.name
             if geo.block_name(lay.name,col.name) in geo.block_name_list:
-    #            print lay.name
                 blk=grid.block[geo.block_name(lay.name,col.name)]
-    #            #blk.sl=results.history(('e',blk.name,'SL'))
-    #            wellsl=np.concatenate((wellsl,[results.history(('e',blk.name,'SL'))
-    #                                  [1]]),axis=0)
-    #            
                 wellblk.append(blk) # list of cells in well column (used in bouguer slab calculation)
-                #outd[blk.name]=[] # set up dictionary to hold well saturation
                 zlist=np.concatenate((zlist,[blk.centre[2]]))
         
         t1=time.clock()
@@ -561,9 +561,9 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
             blkz=blk.centre[2] # elevation of element
             blkxzarea=xzarea[i] # area of element
             # dtheta ingetral leght method:
-            # distance to every element from survey point
-     #      s=((alpha**2)-(2*alpha*well[0]*cos(thetas))+(well[0]**2)+((zp-blkz)**2))**(1./2.) 
-    #       val=(sum(dtheta/s**3)) # fractional contribution of current ring
+            # distance to every element from survey point - Theta must be set above
+#            s=((alpha**2)-(2*alpha*well[0]*cos(thetas))+(well[0]**2)+((zp-blkz)**2))**(1./2.) 
+#            val=(sum(dtheta/s**3)) # fractional contribution of current ring
             # python integrate method: (slower)?
             I= lambda theta: 1/(((alpha**2)-(2*alpha*well[0]*np.cos(theta))+(well[0]**2)+((zp-blkz)**2))**(1.5)) 
             val,err= integrate.quad(I, 0.0, 2*np.pi)
@@ -574,10 +574,10 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         
         # loop over results table untill desired time (in years)
         count=0
-        while results.time/yrsec <= 2 and count < 1: #results.times.size:
+        while results.time/yrsec <= 50 and count < results.times.size:
             t0=time.clock()
-            print('timestep %d out of %d' % (count+1,results.times.size))
-            print results.time/yrsec
+            print('On Station %d of %d' % (wellno,len(wells)))
+            print('timestep %d out of %d (%5.2f yrs)' % (count+1,results.times.size,results.time/yrsec))
             sat=results.element['SL'][1:] # pull out saturation index [0] is the atmosphere cell so no use to us  
             dg=[] # array for collecting together elemental contributions of integral method
             twellsl=[] # array for collecting saturation in well for current timestep
@@ -595,13 +595,15 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
                     #outd[blk.name].append(sat[i])
                     twellsl.append([sat[i]])
                     twellrho.append([blkrho])
-                    if blk is not wellblk[-1]:
-                        #wellvol=wellvol+blk.volume
-                        col=geo.column[geo.column_name(str(blk))]
-                        dummyvolume=width*np.abs(col.bounding_box[1][0]-col.bounding_box[0][0])*(blk.volume/col.area)
-                        #print geo.column[geo.column_name(str(blk))].area
-                        #print 'dummyvolume=',dummyvolume
-                        twell_water_mass=twell_water_mass+(blkrho*dummyvolume)
+#                    if blk is not wellblk[-1]:
+                    #wellvol=wellvol+blk.volume
+                    col=geo.column[geo.column_name(str(blk))]
+                    if blk.volume >= 1.0E50:
+                        dummyvolume=width*np.abs(col.bounding_box[1][0]-col.bounding_box[0][0])*((blk.volume/1.0E50)/col.area)
+                    else: dummyvolume=width*np.abs(col.bounding_box[1][0]-col.bounding_box[0][0])*(blk.volume/col.area)                        
+                    #print geo.column[geo.column_name(str(blk))].area
+                    #print 'dummyvolume=',dummyvolume
+                    twell_water_mass=twell_water_mass+(blkrho*dummyvolume)
     #                wellsl=np.concatenate((wellsl,[outsl1[1]]))
     #                wellro=np.concatenate((wellro,[outsl1[1]*density*blk.rocktype.porosity]))
                 i+=1 # inrement to next element
@@ -628,19 +630,30 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         t1=time.clock()
         t=t1-twell
         print 'time4well_calculations',t    
-        
+        #%%
         ## Plot results for current well
         t0=time.clock()
         times=results.times[0:count]/yrsec # convert times calculted to yrs 
-        gcont=ml.griddata(xs,zs,np.array(dg/xzarea)*6.67e-3,xi,xi,interp='linear')
-        plt.pcolormesh(xi,zi,gcont,cmap=cm.jet_r,vmin=0.0,vmax=1.0,shading='flat')
-        # test plot of contibutions
-        im=plt.figure(figsize=[8,3.6])
-        plt.scatter(xs, zs, c=np.array(dg/xzarea)*6.67e-3, edgecolor='none', marker='s')
-        plt.colorbar()
+        #gcont=ml.griddata(xs,zs,np.array(dg/xzarea)*6.67e-3,xi,zi,interp='linear')
+        c=0
+        dumgrid=np.empty(xi.shape)*np.NaN
+        for j,i,g in zip(jndex,index,np.array(dg/xzarea)*6.67e-3):
+            dumgrid[j,i]=g
+            c=c+1
+        gcont=ma.array(dumgrid,mask=np.isnan(dumgrid))              
+        #gcont=griddata(np.vstack((xs,zs)).T,np.array(dg/xzarea)*6.67e-3,(xi,zi),method='nearest')
+        im=plt.figure(figsize=[8,3.6]) 
+        plt.pcolormesh(xi,zi,gcont,shading='flat',edgecolor='face')
+        plt.colorbar().set_label(r'Contribution to g (' + r'$\mu$'+'gal/m' + r'$^{2}$'+')')
         plt.xlim((xs.min(),xs.max()))
         plt.ylim((zs.min(),zs.max()))
-        plt.show()
+        # test plot of contibutions
+#        im=plt.figure(figsize=[8,3.6])
+#        plt.scatter(xs, zs, c=np.array(dg/xzarea)*6.67e-3, edgecolor='none', marker='s')
+#        plt.colorbar()
+#        plt.xlim((xs.min(),xs.max()))
+#        plt.ylim((zs.min(),zs.max()))
+#        plt.show()
         
         # integral gravity time series
         intgravplt=plt.figure()
@@ -711,110 +724,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         t1=time.clock()
         t=t1-twell
         print 'total time for well',t
-        
-    #       plt.imshow(np.reshape(dg,(geo.get_num_layers()-2,geo.get_num_columns())))
-    ##plt.gca().invert_yaxis()
-    #       plt.colorbar()
-            
-     
-        
-    #    t0=time.clock()
-    #    selsl=[]
-    #    outsl=[]
-    #    
-    #    
-    #    for blk in wellblk:
-    ##        print blk
-    #        selsl=selsl+[('e',blk.name,'SL')]
-    #        zlist=np.concatenate((zlist,[blk.centre[2]]))
-    #    outsl=results.history(selsl) # saturation of all cells in column over time
-    #    times=outsl[0][0]
-    #    wellsl=np.array([]).reshape(0,len(times))
-    #    wellro=np.array([]).reshape(0,len(times))
-    #    well_water_mass=np.zeros(len(times))
-    #    wellvol=0
-    #    
-    #    for blk,outsl1 in zip(wellblk,outsl):
-    #        outd[blk.name]=outsl1[1]
-    #        wellsl=np.concatenate((wellsl,[outsl1[1]]))
-    #        wellro=np.concatenate((wellro,[outsl1[1]*density*blk.rocktype.porosity]))
-    #        if blk is not wellblk[-1]:
-    #           wellvol=wellvol+blk.volume
-    #           well_water_mass=well_water_mass+(outsl1[1]*blk.rocktype.porosity*blk.volume*density)
-    #        #well_water_mass=well_water_mass+(outsl1[1]*blk.rocktype.porosity*blk.volume*density)
-    #    
-    #    microgal=well_water_mass*2*pi*scipy.constants.G/col.area*10**8   
-    #    microgal=microgal-microgal[0]
-    #    
-    #    
-    #     
-    #    t0=time.clock()
-    #    im1=plt.figure()
-    #    plt.plot(times/yrsec,microgal)
-    #    plt.ylabel(r'$\Delta g$ (microgal)')
-    #    plt.xlabel('Time (years)')
-    #    plt.axis([0.0, times.max()/yrsec,None,None])
-    #    
-    #    T,Z=np.meshgrid(times/yrsec,zlist)    
-    # #   plt.figure()
-    #  #  im=plt.imshow(wellsl, interpolation='bilinear',origin='upper',
-    #  #                vmin=wellsl.min(),vmax=wellsl.max(), cmap=cm.jet_r,
-    #   #               extent=(0.0,6.2221e+09,-250,750),aspect='auto')
-    #                  
-    #    im2=plt.figure()
-    #    profplt=plt.pcolormesh(T,Z,wellsl,cmap=cm.jet_r,vmin=0.0,vmax=1.0,shading='flat')
-    #    plt.axis([T.min(), T.max(), 0, Z.max()])
-    #    plt.ylabel('Z (m)')
-    #    plt.xlabel('Time (years)')    
-    #    cbar=plt.colorbar(profplt,orientation='vertical')
-    #    cbar.set_label('Saturation')   
-    #    t1=time.clock()
-    #    t=t1-t0
-    #    print 'time2plotwell',t 
-    #
-    #
-    #    if save is 'yes':  
-    #       t0=time.clock()      
-    #       zt_density_matrix=np.concatenate((
-    #       [np.concatenate((np.array([0]),times))],
-    #        np.concatenate((zlist.reshape(len(zlist),1),wellro),
-    #                       axis=1)),
-    #                       axis=0)
-    #       f = open('resultxt.txt','w')
-    #       f.write('Model = '+mod+'\n'
-    #               'Mass max (kg) =' +str(well_water_mass.max())+'\n'
-    #               'Mass min (kg) =' +str(well_water_mass.min())+'\n'
-    #               'Max amplidute (mass)='+str(well_water_mass.max()-well_water_mass.min())+'\n'
-    #               'grav max (microgal) =' +str(microgal.max())+'\n'
-    #               'grav min (microgal) =' +str(microgal.min())+'\n'
-    #               'Max amplidute (grav)='+str(microgal.max()-microgal.min())+'\n')
-    #       f.close()
-    #       savetxt('ztro.dat',zt_density_matrix)                
-    #       savetxt('waterweight'+str(wellno)+'.dat',zip(times,well_water_mass))
-    #       savetxt('microgal'+str(wellno)+'.dat',zip(times,microgal))
-    #       im2.savefig('sl_t_profile'+str(wellno)+'.png',dpi=300)
-    #       #im2.savefig('sl_t_profile'+str(wellno)+'.eps')
-    #       im1.savefig('microgal'+str(wellno)+'.pdf')
-    #
-    #    #savefig('sl_t_profile.pdf')
-    #       t1=time.clock()
-    #       t=t1-t0
-    #       print 'time2saveplot',t
-           
-           
-    #for i in range(0,len(times)):
-     #   t=times[i]
-      #  profilez=[]
-       # profilesl=[]
-        #slgrd=np.concatenate((blk.sl[1]) for blk in wellblk[1:])
-         #  profilez.append(blk.centre[2])
-          # profilesl.append(blk.sl[1][i])
-           #plot(profilesl,profilez)
-           
-          
-    #thingys=[wellblk[1].sl[1]]
-    #for thing in wellblk[2:]:
-     # thingys=np.concatenate((thingys,[thing.sl[1]]))      
+        plt.close('all')
             
     if savevtk:
        t0=time.clock()
