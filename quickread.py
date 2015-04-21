@@ -10,6 +10,7 @@ from t2data import *
 from t2grids import *
 from t2listing import *
 import os
+import pytoughgrav as ptg
 
 
 os.chdir(r'C:\Users\glbjch\Local Documents\Work\Modelling\Steffi_GRAV')
@@ -21,6 +22,7 @@ if not os.path.exists('results'):
 dat=t2data('flow2.inp')
 grid=dat.grid
 geo=mulgrid('grd.dat')
+ptg.makeradial(geo,None,10.0)
 results=t2listing('flow2.out')
 os.chdir('results')
 results.write_vtk(geo,'output.vtk',grid=grid,flows=True)

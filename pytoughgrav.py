@@ -467,7 +467,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         raise TypeError('data needs to be type mulgrid. Type ' + str(type(geo)) + ' found. You idiot')
     else: geo=geom_data
     if type(results) is not t2listing:
-        raise TypeError('data needs to be type t2listing. Type ' + str(type(geo)) + ' found. You idiot')
+        raise TypeError('results needs to be type t2listing. Type ' + str(type(geo)) + ' found. You idiot')
 
     
     grid=dat.grid # define input grid
@@ -681,7 +681,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         t1=time.clock()
         t=t1-t0
         print 'time2plotwell',t
-        
+        #%%
         if save:  
            t0=time.clock() 
            #if not os.path.exists('mark2'):
@@ -734,7 +734,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
        print 'time2writevtks',t
 
     return results
-
+#%%
 def grate( modelname, in_ts, winlen=[2,5,10], save=True, input_in="yrs", fall=None, fallmax=None ):
     """ grate( timeseries, window_length, save_option, input_in )\n
     Calculate and plot simulated rates of gravity change. 
@@ -835,9 +835,85 @@ def grate( modelname, in_ts, winlen=[2,5,10], save=True, input_in="yrs", fall=No
            #f = open('resultxt_'+str(wellno)+'test.txt','w')
     return output               
 
-def relgrav(reference_modelname,reference_ts,test_modelname,test_ts):
+def relgrav(reference_modelname,test_modelname,reference_ts='axsym_int_microgal5.dat',test_ts=['axsym_int_microgal1.dat'],save=True,time_in='yrs'):
+    plt.close('all')    
+    cd=os.getcwd()    
     ref_mod=reference_modelname
     mod=test_modelname  
-    ref_grav=reference_ts
-    grav=test_ts
+    #ref_grav=reference_ts
+    
+    os.chdir(ref_mod+'/results')
+    ref_grav=np.vstack(np.loadtxt(reference_ts)).T
+    
+    os.chdir(cd)
+    if type(mod) is str:
+        if type(test_ts) is not str:
+            modlist=[mod]*len(test_ts)
+        else:
+            test_ts=[test_ts]
+            modlist=[mod]
+            
+    num=1        
+    for ts,mod in zip(test_ts,modlist):
+        os.chdir(cd)
+        os.chdir(mod+'/results')
+        grav=np.vstack(np.loadtxt(ts)).T
+        if grav[0][-1] > ref_grav[0][-1]:
+            ref_grav=np.concatenate((ref_grav,np.array([[grav[0][-1]],[grav[1][-1]]])),axis=1)
+        im1=plt.figure()
+        if time_in is 'yrs':
+            yrsec=1
+        else: yrsec=3600*24*365.25
+        plt.plot(ref_grav[0]/yrsec,ref_grav[1],'-',linewidth=2)
+        plt.plot(grav[0]/yrsec,grav[1],'-',linewidth=2)
+
+
+        times=np.array([])
+        gravdif=np.array([])
+        i=0
+        for t,g in zip(grav[0],grav[1]):
+           #print 't='+str(t)
+           #print 'g='+str(g)
+           while i < len(ref_grav[0]):
+              #print i
+              if t >=ref_grav[0][i] and t <= ref_grav[0][i+1]:
+                 times=np.concatenate((times,[t]),axis=0)
+                 #print 'times='+str(times)
+                 grad=((ref_grav[1][i+1])-(ref_grav[1][i]))/((ref_grav[0][i+1])-(ref_grav[0][i]))
+                 # print 'grad='+str(grad)
+                 refgatt=ref_grav[1][i]+((t-ref_grav[0][i])*grad)
+                 #print 'refgatt='+str(refgatt)
+                 gravdif=np.concatenate((gravdif,[g-refgatt])
+                 ,axis=0)
+                 break
+              else: i=i+1    
+                    
+                
+        plt.plot(times/yrsec,gravdif,linewidth=2) 
+        plt.xlim((0,times.max()/yrsec))
+        plt.ylim((-60,100))
+        plt.ylabel(r'$\Delta g$ (microgal)',fontsize=18)
+        plt.xlabel('Time (years)',fontsize=18)  
+        plt.tick_params(axis='both',labelsize=18)
+        if save:                 
+           np.savetxt('gravdiff'+str(num)+'.dat',zip(times,gravdif))
+           im1.savefig('vsref'+str(num)+'.pdf')   
+           im1.savefig('vsref'+str(num)+'.png')
+           f = open('relresultxt'+str(num)+'.txt','w')
+           if mod is not ref_mod:          
+               f.write('Model = '+mod+'\n'
+                           'Base = '+ref_mod+'\n'
+                           'relgrav max (microgal) =' +str(gravdif.max())+'\n'
+                           'relgrav min (microgal) =' +str(gravdif.min())+'\n'
+                           'Max amplidute (relgrav)='+str(gravdif.max()-gravdif.min())+'\n')
+           else:
+               f.write('Model = '+mod+ts+'\n'
+                       'Base = '+ref_mod+reference_ts+'\n'
+                       'relgrav max (microgal) =' +str(gravdif.max())+'\n'
+                       'relgrav min (microgal) =' +str(gravdif.min())+'\n'
+                       'Max amplidute (relgrav)='+str(gravdif.max()-gravdif.min())+'\n')
+               
+           f.close()
+        num=num+1
+    os.chdir(cd)
 
