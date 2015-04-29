@@ -133,11 +133,11 @@ for well in wells:
         blkxzarea=xzarea[i] # area of element
         # dtheta ingetral leght method:
         # distance to every element from survey point
- #      s=((alpha**2)-(2*alpha*well[0]*cos(thetas))+(well[0]**2)+((zp-blkz)**2))**(1./2.) 
-#       val=(sum(dtheta/s**3)) # fractional contribution of current ring
+        #      s=((alpha**2)-(2*alpha*well[0]*cos(thetas))+(well[0]**2)+((zp-blkz)**2))**(1./2.) 
+        #       val=(sum(dtheta/s**3)) # fractional contribution of current ring
         # python integrate method: (slower)?
-        I= lambda theta: 1/(((alpha**2)-(2*alpha*well[0]*cos(theta))+(well[0]**2)+((zp-blkz)**2))**(1.5)) 
-        val,err= integrate.quad(I, 0.0, 2*pi)
+        I= lambda theta: 1/(((alpha**2)-(2*alpha*well[0]*np.cos(theta))+(well[0]**2)+((zp-blkz)**2))**(1.5)) 
+        val,err= integrate.quad(I, 0.0, 2*np.pi)
         # multiply by radius of ring, vertical distance from survey point to ring, xzarea 
         comp.append((zp-blkz)*alpha*val*blkxzarea)
         i+=1
@@ -159,7 +159,7 @@ for well in wells:
         for blk in grid.blocklist[1:]: # dont bother with atmos cell
             blkrho=sat[i]*blk.rocktype.porosity*density # saturation density in element
             dg.append(comp[i]*blkrho) # gravity conribution of element 
-            
+            i+=1
             ## For bouguer slab.....
             #calculated saturation, saturation density and water mass in column at current timestep
             if blk in wellblk:
@@ -200,7 +200,7 @@ for well in wells:
     times=results.times[0:count]/yrsec # convert times calculted to yrs 
     
     # test plot of contibutions
-    im=figure(figsize=[8,3.6])
+    im=plt.figure(figsize=[8,3.6])
     plt.scatter(xs, zs, c=np.array(dg/xzarea)*6.67e-3, edgecolor='none', marker='s')
     plt.colorbar()
     plt.xlim((xs.min(),xs.max()))

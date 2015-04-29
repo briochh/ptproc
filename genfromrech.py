@@ -18,6 +18,7 @@ def unique_rows(data):
     return uniq.view(data.dtype).reshape(-1, data.shape[1])
     
 t0=time.clock()
+save=False
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Steffi_GRAV\dev_files")
 
 #read in file
@@ -73,10 +74,12 @@ mura,mure=[np.mean(row)*(1e6/area/(24.*3600.)) for row in rainrech] #kg/s/m2
 #normallise by divising by the means
 norm_monthrech=np.vstack((np.divide(montrechts[:,3],mure),montrechts[:,4])).T
 #save data.
-hdr1='normalised recharge\tduration (s)\taverage recharge = '+ str(mure)+ ' kg/s/m2'
-np.savetxt('norm_monthrech.txt',norm_monthrech,header=hdr1,delimiter='\t',fmt='%10.5g')
 
-hdr2='year\tmonth\trainfall(kg/m2/s)\trecharge(kg/m2/s)\tseconds'
-fmt='%4i\t%02i\t%e\t%e\t%e'
-np.savetxt('montrechts.txt',montrechts,header=hdr2,fmt=fmt,delimiter='\t')
+if save:    
+    hdr1='normalised recharge\tduration (s)\taverage recharge = '+ str(mure)+ ' kg/s/m2'
+    np.savetxt('norm_monthrech.txt',norm_monthrech,header=hdr1,delimiter='\t',fmt='%10.5g')
+
+    hdr2='year\tmonth\trainfall(kg/m2/s)\trecharge(kg/m2/s)\tseconds'
+    fmt='%4i\t%02i\t%e\t%e\t%e'
+    np.savetxt('montrechts.txt',montrechts,header=hdr2,fmt=fmt,delimiter='\t')
 

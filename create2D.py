@@ -14,16 +14,26 @@ import shutil
 
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Steffi_GRAV") # define working directory
-mod='20150327_1'
+mod='20150429_1'
 if not os.path.exists(mod):
     os.makedirs(mod)
     
 width=10.    
 zcells=[10]*34+[2]*80+[10]*19+[2]*30+[10]*5 # 800 m (down to 50 m bsl) 
 surf=ptg.topsurf('dev_files/2Dprofile.txt',delim='\t',headerlines=1,width=width)
-geo=ptg.geo2D( mod, length=3600, width=width, celldim=10., origin=([0,0,750]), zcells=zcells, surface=surf )
 
-### make radial
+## define well locations
+stations=np.genfromtxt('dev_files/Steffie_station_locs.txt', delimiter=',', dtype=None, skiprows=1, usecols=(0,1) ,names='x,y')
+station_dists=[np.sqrt(((modelorigin[0]-x)**2 + (modelorigin[1]-y)**2)) for x,y in zip(stations['x'],stations['y'])]
+station_dists.sort()
+wellx=station_dists
+#wellx=[50.0,500.0,1750,2200,2650]##5.0,50.0,500,1750,2200,2650#######################################################
+#wellx=[50.0]################################################################
+welly=[width/2.0]*len(wellx) # make y coords same length as x coords
+wells=np.hstack((np.transpose([wellx]),np.transpose([welly])))
+
+geo=ptg.geo2D( mod, length=3600, width=width, celldim=10., origin=([0,0,750]),
+              zcells=zcells, surface=surf, wells=wells )
 
 
 ### Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   
@@ -94,7 +104,10 @@ top.specific_heat=1000.0
 rtypes=rtypes+[top]
 
 lpregion=[[0,0,-50],[1400,0,250]]
-ecol=[geo.columnlist[-1]] # create list of boundary columns (last)
+newlist=np.array([(col,col.centre[0]) for col in geo.columnlist])
+ecol=[newlist[newlist[:,1].argsort()][-1,0]]
+print ecol
+#ecol=[geo.columnlist[-1]] # create list of boundary columns (last)
 
 # send to grid2D function to create grid and add rocktype information and define intial conditions 
 # also add permeability modifications........

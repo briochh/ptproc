@@ -29,11 +29,11 @@ dat_fname='flow2.inp'
 readresults=True ########### I N P U T #########################
 results_fname='flow2.out'
 
-save=True ########### I N P U T #########################
-savevtk=True ########### I N P U T #########################
+save=False ########### I N P U T #########################
+savevtk=False ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
 modelorigin=(586034.886,1852660.465)
-width=10.0
+
 
 #%% functions
 def anagrams(word):
@@ -85,6 +85,7 @@ if not batch:
         if readresults is True: 
             print 'Reading results from '+ results_fname
             results=t2listing(results_fname)
+    width=geo.bounds[1][1]-geo.bounds[0][1] #10.0
     print 'time to read=',(time.clock()-t0)
     ## define well locations
     stations=np.genfromtxt('../dev_files/Steffie_station_locs.txt', delimiter=',', dtype=None, skiprows=1, usecols=(0,1) ,names='x,y')

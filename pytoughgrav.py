@@ -219,7 +219,9 @@ def grid1D( modelname, basefile, parameter, perm=5.0e-13, poro=0.34, rp={'type':
     dat.write(param+'/'+mod+'/flow2.inp')      
     shutil.copy('C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/batching/base/1D_20140620_2_py_it',param+'/'+mod+'/'+mod)
 
-def geo2D( modelname, length=500., depth=500., width=1., celldim=10., origin=([0,0,0]), xcells=None,  zcells=None , surface= None ):
+def geo2D( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
+          origin = ([0,0,0]), xcells = None,  zcells = None,
+          surface = None, wells = None):
     """ Function to generate a 2D grid tough2 grid."""
     mod=modelname
     if xcells is None:
@@ -235,6 +237,13 @@ def geo2D( modelname, length=500., depth=500., width=1., celldim=10., origin=([0
     # 20 cells 100 m high in z  
     # to make use of more possible grid names add char=ascii_lowercase+ascii_uppercase
     geo.atmosphere_volume= 1.0e50 # change volume of atmos cell to 1e50
+    if wells is not None:
+        colstorefine=[geo.columns_in_polygon([np.concatenate((np.add(well,(-15,0)),[origin[2]-sum(zcells)])),np.concatenate((np.add(well,(15,0)),[origin[2]]))]) for well in wells]
+        geo.refine(np.hstack(colstorefine),bisect='y',chars = '123456789')
+        colstorefine=[geo.columns_in_polygon([np.concatenate((np.add(well,(-5,0)),[origin[2]-sum(zcells)])),np.concatenate((np.add(well,(5,0)),[origin[2]]))]) for well in wells]
+        geo.refine(np.hstack(colstorefine),bisect='y',chars = '123456789')
+        colstorefine=[geo.column_containing_point(well) for well in wells]
+        geo.refine(np.hstack(colstorefine),bisect='y',chars = '123456789')
     if surface is not None:
         geo.fit_surface(surface, silent=True, layer_snap=2.0) # fit topograpghy surface
     geo.write(mod+'/grd.dat')
@@ -301,8 +310,9 @@ def rockandincon(blk,grid,dat,rocktype,P,SG,T,pmx,infvol=False):
     if pmx is not None:
         grid.block[(str(blk))].pmx=pmx
     if infvol:
-        grid.block[str(blk)].volume=1E50
-    
+        grid.block[str(blk)].volume=grid.block[str(blk)].volume*1E50 # more robust later on as we retain somthing of orginal volume
+#       grid.block[str(blk)].volume=1E50 
+        
 def topsurf(surfpath,delim='\t',headerlines=1,width=10):
     """ reads and reshapes surface profile for use in 2D model """
     ## top surface
@@ -490,7 +500,8 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     cen=np.array([]).reshape(0,3)
     for blk in grid.blocklist[1:]:
         if blk.volume >= 1.0E50:
-            dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E50]))
+            #dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E50]))
+            dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E47]))
         else: dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area])) # array of thickness of each block
         # dz=np.concatenate((dz,[geo.layer[geo.layer_name(blk.name)].thickness])) # array of thickness of each block
         dx=np.concatenate((dx,[geo.column[geo.column_name(blk.name)].side_lengths[1]])) # array of x direction cell widths
@@ -562,8 +573,8 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
             blkxzarea=xzarea[i] # area of element
             # dtheta ingetral leght method:
             # distance to every element from survey point - Theta must be set above
-#            s=((alpha**2)-(2*alpha*well[0]*cos(thetas))+(well[0]**2)+((zp-blkz)**2))**(1./2.) 
-#            val=(sum(dtheta/s**3)) # fractional contribution of current ring
+            # s=((alpha**2)-(2*alpha*well[0]*cos(thetas))+(well[0]**2)+((zp-blkz)**2))**(1./2.) 
+            # val=(sum(dtheta/s**3)) # fractional contribution of current ring
             # python integrate method: (slower)?
             I= lambda theta: 1/(((alpha**2)-(2*alpha*well[0]*np.cos(theta))+(well[0]**2)+((zp-blkz)**2))**(1.5)) 
             val,err= integrate.quad(I, 0.0, 2*np.pi)
@@ -595,7 +606,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
                     #outd[blk.name].append(sat[i])
                     twellsl.append([sat[i]])
                     twellrho.append([blkrho])
-#                    if blk is not wellblk[-1]:
+                    #if blk is not wellblk[-1]:
                     #wellvol=wellvol+blk.volume
                     col=geo.column[geo.column_name(str(blk))]
                     if blk.volume >= 1.0E50:
