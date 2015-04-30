@@ -13,8 +13,8 @@ import os
 import pytoughgrav as ptg
 
 
-os.chdir('/Users/briochh/Documents/Workhere/testing')
-mod='1Dtest2' # define model name
+os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Steffi_GRAV')
+mod='20150429_1' # define model name
 os.chdir(mod)
 if not os.path.exists('results'): 
     os.makedirs('results')   
@@ -22,7 +22,8 @@ if not os.path.exists('results'):
 dat=t2data('flow2.inp')
 grid=dat.grid
 geo=mulgrid('grd.dat')
-ptg.makeradial(geo,None,10.0)
+width=geo.bounds[1][1]-geo.bounds[0][1] #10.0
+ptg.makeradial(geo,None,width)
 results=t2listing('flow2.out')
 os.chdir('results')
 results.write_vtk(geo,'output.vtk',grid=grid,flows=True)

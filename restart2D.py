@@ -21,8 +21,8 @@ plt.close('all')
 #%%
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Steffi_GRAV')
 
-mod='20150327_1_var'
-basemod='20150327_1'
+mod='20150429_1_var'
+basemod='20150429_1'
 if not os.path.exists(mod):
     os.makedirs(mod)
 
@@ -42,7 +42,7 @@ inc.write(mod+'/flow2.inc')
 dat.parameter['max_timestep']=2.0e6
 dat.parameter['print_interval']=50
 dat.parameter['timestep']=[1.0]
-#dat.output_times['time_increment']
+#dat.output_times['time_increment']=28.*3600*365.25.24
 #dat.output_times['time']=[1.0]
 #dat.output_times['num_times_specified']=len(dat.output_times['time'])
 #dat.output_times['num_times']=7

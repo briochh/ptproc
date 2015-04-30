@@ -18,7 +18,7 @@ from t2incons import *
 from t2listing import *
 
 #%% set up
-t0=time.clock()
+t0=tinit=time.clock()
 plt.close('all')
 
 read=True ########### I N P U T #########################
@@ -29,8 +29,8 @@ dat_fname='flow2.inp'
 readresults=True ########### I N P U T #########################
 results_fname='flow2.out'
 
-save=False ########### I N P U T #########################
-savevtk=False ########### I N P U T #########################
+save=True ########### I N P U T #########################
+savevtk=True ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
 modelorigin=(586034.886,1852660.465)
 
@@ -65,7 +65,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150327_1_var' ########### I N P U T #########################
+    mod='20150429_1_var' ########### I N P U T #########################
 
 
 #%%###########################################################################
@@ -85,8 +85,9 @@ if not batch:
         if readresults is True: 
             print 'Reading results from '+ results_fname
             results=t2listing(results_fname)
+    t1=time.clock()        
+    print 'time to read=',(t1-t0)
     width=geo.bounds[1][1]-geo.bounds[0][1] #10.0
-    print 'time to read=',(time.clock()-t0)
     ## define well locations
     stations=np.genfromtxt('../dev_files/Steffie_station_locs.txt', delimiter=',', dtype=None, skiprows=1, usecols=(0,1) ,names='x,y')
     station_dists=[np.sqrt(((modelorigin[0]-x)**2 + (modelorigin[1]-y)**2)) for x,y in zip(stations['x'],stations['y'])]
@@ -96,8 +97,8 @@ if not batch:
     #wellx=[50.0]################################################################
     welly=[width/2.0]*len(wellx) # make y coords same length as x coords
     wells=np.hstack((np.transpose([wellx]),np.transpose([welly])))
-    t1=time.clock()
-    t=t1-t0
+    t2=time.clock()
+    t=t2-t0
     print 'time2setup=',t
     results=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo)
 
@@ -137,5 +138,5 @@ if batch:
                 results=t2listing(results_fname)
         ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo,fall=fall)
     fall.close()
-print 'time to run =', time.clock()-t0
+print 'time to run =', time.clock()-tinit
        

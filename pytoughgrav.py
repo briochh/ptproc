@@ -17,11 +17,11 @@ from t2listing import *
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.cm as cm
-import matplotlib.mlab as ml
+#import matplotlib.mlab as ml
 import numpy as np
 import bisect
 from scipy.interpolate import interp1d
-from scipy.interpolate import griddata
+#from scipy.interpolate import griddata
 import scipy.integrate as integrate
 import scipy.constants
 import shutil
@@ -464,7 +464,7 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
 def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=None, geom_data=None, results=None, fall=None):
     """ Function to read pytough results and calculate simulated changes in gravity associated with saturation changes.
     """
-        ## read output file
+    ## read output file
     wells=survey_points
     mod=modelname
 
@@ -500,11 +500,11 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     cen=np.array([]).reshape(0,3)
     for blk in grid.blocklist[1:]:
         if blk.volume >= 1.0E50:
-            #dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E50]))
-            dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E47]))
+            dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E50]))
+            #dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E47]))
         else: dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area])) # array of thickness of each block
         # dz=np.concatenate((dz,[geo.layer[geo.layer_name(blk.name)].thickness])) # array of thickness of each block
-        dx=np.concatenate((dx,[geo.column[geo.column_name(blk.name)].side_lengths[1]])) # array of x direction cell widths
+        dx=np.concatenate((dx,[geo.column[geo.column_name(blk.name)].side_lengths[0]])) # array of x direction cell widths
         cen=np.concatenate((cen,[blk.centre]))
     
     xzarea=dz*dx # array of cell x by z area
@@ -525,14 +525,18 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     #ntheta=1000.0 # number of increments
     #dtheta=2.0*np.pi/ntheta # length of element of integral
     #thetas=np.arange(0.0,2.0*np.pi,dtheta) #array of integral element lengths
-    print 'time to initialise results=',(time.clock()-t0)
+    t1=time.clock()    
+    print 'time to initialise results grid=',(t1-t0)
     
     #%%
     ## loop over each gravity survey point given in wellx
     wellno=0
+    maxtime=20
+    outtimes=[outtime for outtime in results.times if outtime/yrsec <= maxtime]
+    sat={}  # set or resest dictionary of saturations
+    
     for well in wells:
         twell=time.clock()
-        
         wellno=wellno+1
         print well
         wellblk=[] # list for block names in well column
@@ -541,7 +545,6 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         
         ## generate list of cells beneath survey point (within well)
         ## usedfor bouguer slab
-        t0=time.clock()
         col=geo.column_containing_point(well) # column that contains the survey point
         if geo.atmosphere_type is 2: 
             stpoint=0
@@ -553,7 +556,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
                 zlist=np.concatenate((zlist,[blk.centre[2]]))
         
         t1=time.clock()
-        t=t1-t0
+        t=t1-twell
         print 'time4wellblk',t
         
         zp=col.surface # surface eleaviton  - denotes z elevation for gravity measurement
@@ -581,57 +584,63 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
             # multiply by radius of ring, vertical distance from survey point to ring, xzarea 
             comp.append((zp-blkz)*alpha*val*blkxzarea)
             i+=1
+        t2=time.clock()
+        print 'time to calculate contribution',(t2-t1)
             
         
         # loop over results table untill desired time (in years)
         count=0
-        while results.time/yrsec <= 50 and count < results.times.size:
-            t0=time.clock()
-            print('On Station %d of %d' % (wellno,len(wells)))
-            print('timestep %d out of %d (%5.2f yrs)' % (count+1,results.times.size,results.time/yrsec))
-            sat=results.element['SL'][1:] # pull out saturation index [0] is the atmosphere cell so no use to us  
-            dg=[] # array for collecting together elemental contributions of integral method
-            twellsl=[] # array for collecting saturation in well for current timestep
-            twellrho=[] # array for collecting saturation density in well for current timestep
-            twell_water_mass=0 # starting point for water mass in well at current timestep
-            # loop over every block for current timestep
-            i=0
-            for blk in grid.blocklist[1:]: # dont bother with atmos cell
-                blkrho=sat[i]*blk.rocktype.porosity*density # saturation density in element
-                dg.append(comp[i]*blkrho) # gravity conribution of element 
-                
-                ## For bouguer slab.....
-                #calculated saturation, saturation density and water mass in column at current timestep
-                if blk in wellblk:
-                    #outd[blk.name].append(sat[i])
-                    twellsl.append([sat[i]])
-                    twellrho.append([blkrho])
-                    #if blk is not wellblk[-1]:
-                    #wellvol=wellvol+blk.volume
-                    col=geo.column[geo.column_name(str(blk))]
-                    if blk.volume >= 1.0E50:
-                        dummyvolume=width*np.abs(col.bounding_box[1][0]-col.bounding_box[0][0])*((blk.volume/1.0E50)/col.area)
-                    else: dummyvolume=width*np.abs(col.bounding_box[1][0]-col.bounding_box[0][0])*(blk.volume/col.area)                        
-                    #print geo.column[geo.column_name(str(blk))].area
-                    #print 'dummyvolume=',dummyvolume
-                    twell_water_mass=twell_water_mass+(blkrho*dummyvolume)
-    #                wellsl=np.concatenate((wellsl,[outsl1[1]]))
-    #                wellro=np.concatenate((wellro,[outsl1[1]*density*blk.rocktype.porosity]))
-                i+=1 # inrement to next element
-            #compile array of saturation, density and water mass in current column for all timesteps
-            wellsl=np.concatenate((wellsl,twellsl),axis=1)
-            wellro=np.concatenate((wellro,twellrho),axis=1)
-            well_water_mass.append(twell_water_mass)
+        for outtime in outtimes:
+            if count < results.times.size:
+                t0=time.clock()
+                print('On Station %d of %d' % (wellno,len(wells)))
+                print('timestep %d out of %d (%5.2f yrs)' % (count+1,results.times.size,results.time/yrsec))
+                if str(outtime) not in sat: # for first well pull out saturation for each tstep 
+                    print 'redoing sat    '                
+                    sat[str(outtime)]=copy.copy(results.element['SL'][1:]) # pull out saturation index [0] is the atmosphere cell so no use to us                
+                    results.next() # move to next timestep             
+                dg=[] # array for collecting together elemental contributions of integral method
+                twellsl=[] # array for collecting saturation in well for current timestep
+                twellrho=[] # array for collecting saturation density in well for current timestep
+                twell_water_mass=0 # starting point for water mass in well at current timestep
+                # loop over every block for current timestep
+                i=0
+                for blk in grid.blocklist[1:]: # dont bother with atmos cell
+                    blkrho=sat[str(outtime)][i]*blk.rocktype.porosity*density # saturation density in element
+                    dg.append(comp[i]*blkrho) # gravity conribution of element 
             
-            # Total axissummetric intgral gravity due to water mass in model for current time step
-            grav=6.67e-3*sum(dg)
-            gravt.append(grav) # compile gravity due to water at current survey point for each timestep 
-            print grav
-            results.next() # move to next timestep 
-            count+=1 # incrment timestep counter
-            dt=time.clock()-t0
-            print('time for timestep = %e s' % dt)
-    
+                    ## For bouguer slab.....
+                    #calculated saturation, saturation density and water mass in column at current timestep
+                    if blk in wellblk:
+                        #outd[blk.name].append(sat[i])
+                        twellsl.append([sat[str(outtime)][i]])
+                        twellrho.append([blkrho])
+                        #if blk is not wellblk[-1]:
+                        #wellvol=wellvol+blk.volume
+                        col=geo.column[geo.column_name(str(blk))]
+                        if blk.volume >= 1.0E50:
+                            dummyvolume=width*np.abs(col.bounding_box[1][0]-col.bounding_box[0][0])*((blk.volume/1.0E50)/col.area)
+                        else: dummyvolume=width*np.abs(col.bounding_box[1][0]-col.bounding_box[0][0])*(blk.volume/col.area)                        
+                        #print geo.column[geo.column_name(str(blk))].area
+                        #print 'dummyvolume=',dummyvolume
+                        twell_water_mass=twell_water_mass+(blkrho*dummyvolume)
+                        # wellsl=np.concatenate((wellsl,[outsl1[1]]))
+                        # wellro=np.concatenate((wellro,[outsl1[1]*density*blk.rocktype.porosity]))
+                    i+=1 # inrement to next element
+                #compile array of saturation, density and water mass in current column for all timesteps
+                wellsl=np.concatenate((wellsl,twellsl),axis=1)
+                wellro=np.concatenate((wellro,twellrho),axis=1)
+                well_water_mass.append(twell_water_mass)
+                
+                # Total axissummetric intgral gravity due to water mass in model for current time step
+                grav=6.67e-3*sum(dg)
+                gravt.append(grav) # compile gravity due to water at current survey point for each timestep 
+                print grav
+                results.next() # move to next timestep 
+                count+=1 # incrment timestep counter
+                dt=time.clock()-t0
+                print('time for timestep = %e s' % dt)
+
         # Bouguer slab gravity approximations
         well_water_mass=np.array(well_water_mass)
         #print ((col.area*width)/(2*np.pi*col.centre[0]))
@@ -648,14 +657,23 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         #gcont=ml.griddata(xs,zs,np.array(dg/xzarea)*6.67e-3,xi,zi,interp='linear')
         c=0
         dumgrid=np.empty(xi.shape)*np.NaN
-        for j,i,g in zip(jndex,index,np.array(dg/xzarea)*6.67e-3):
-            dumgrid[j,i]=g
+        dumgrid2=np.empty(xi.shape)*np.NaN
+        for j,i,g,a in zip(jndex,index,np.array(dg)*6.67e-3,xzarea):
+            dumgrid[j,i]=g/a
+            dumgrid2[j,i]=100.*(g/grav)
             c=c+1
-        gcont=ma.array(dumgrid,mask=np.isnan(dumgrid))              
+        gcont=ma.array(dumgrid,mask=np.isnan(dumgrid))        
+        gcont2=ma.array(dumgrid2,mask=np.isnan(dumgrid2))   
         #gcont=griddata(np.vstack((xs,zs)).T,np.array(dg/xzarea)*6.67e-3,(xi,zi),method='nearest')
-        im=plt.figure(figsize=[8,3.6]) 
+        elcont=plt.figure(figsize=[8,3.6]) 
         plt.pcolormesh(xi,zi,gcont,shading='flat',edgecolor='face')
         plt.colorbar().set_label(r'Contribution to g (' + r'$\mu$'+'gal/m' + r'$^{2}$'+')')
+        plt.xlim((xs.min(),xs.max()))
+        plt.ylim((zs.min(),zs.max()))
+        
+        elcont2=plt.figure(figsize=[8,3.6]) 
+        plt.pcolormesh(xi,zi,gcont2,shading='flat',edgecolor='face')
+        plt.colorbar().set_label('Percent contribution of element\n to total water induced gravity (%)')
         plt.xlim((xs.min(),xs.max()))
         plt.ylim((zs.min(),zs.max()))
         # test plot of contibutions
@@ -721,7 +739,8 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
            np.savetxt('waterweight'+str(wellno)+'.dat',zip(times,well_water_mass))
            np.savetxt('microgal'+str(wellno)+'.dat',zip(times,microgal))
            np.savetxt('axsym_int_microgal'+str(wellno)+'.dat',zip(times,(gravt-gravt[0])))
-           im.savefig(mod+'_elemental_cont'+str(wellno)+'.pdf')       
+           elcont.savefig(mod+'_elemental_cont'+str(wellno)+'.pdf') 
+           elcont2.savefig(mod+'_elemental_cont_norm'+str(wellno)+'.pdf')
            im2.savefig(mod+'_sl_t_profile'+str(wellno)+'test.png',dpi=300)
            #im2.savefig('sl_t_profile'+str(wellno)+'.eps')
            im1.savefig(mod+'_boug'+str(wellno)+'.pdf')
@@ -731,11 +750,12 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
            t1=time.clock()
            t=t1-t0
            print 'time2saveplot',t
+           plt.close('all')
         
         t1=time.clock()
         t=t1-twell
         print 'total time for well',t
-        plt.close('all')
+        
             
     if savevtk:
        t0=time.clock()
