@@ -29,6 +29,7 @@ import time
 import os
 import copy
 import numpy.ma as ma
+import cPickle as pickle
 
 mpl.rcParams['xtick.labelsize']=14
 
@@ -36,6 +37,13 @@ mpl.rcParams['ytick.labelsize']=14
 
 mpl.rcParams['axes.labelsize']=14
  
+def save_obj(obj, name ):
+    with open( name , 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name ):
+    with open( name , 'rb') as f:
+        return pickle.load(f)
     
 def grid1D( modelname, basefile, parameter, perm=5.0e-13, poro=0.34, rp={'type':11, 'parameters':[0.1,0.0,0.0,0.5,0.0,None,1.0]}, cp={'type':11, 'parameters':[0.0,-5000.0,0.001618,0.85,None,None,0.1]}, rechshift=0.0, wt=50.0 ):
     """ grid1D()\n
@@ -348,6 +356,7 @@ def makeradial(geo,grid,width=1.):
     
     for col in geo.columnlist:
         col.area=2*np.pi*col.centre[0]*col.area/width
+    geo.radial=True
            
 def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0942e5):
     dat.clear_generators()
@@ -461,7 +470,7 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     np.savetxt(mod+'/genertot.txt',np.vstack((tforplot,gforplot)).T)
     
         
-def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=None, geom_data=None, results=None, fall=None):
+def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=None, geom_data=None, results=None, sat={}, fall=None):
     """ Function to read pytough results and calculate simulated changes in gravity associated with saturation changes.
     """
     ## read output file
@@ -470,19 +479,28 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
 
     
     t0=time.clock()
-    if type(tough2_input) is not t2data:
+    if type(tough2_input) is not t2data and tough2_input is not None:
         raise TypeError('data needs to be type t2data. Type ' + str(type(geo)) + ' found. You idiot')
+    elif tough2_input is None:
+        raise TypeError('data needs to be type t2data. Currently None found. You idiot')
     else: dat=tough2_input
-    if type(geom_data) is not mulgrid:
+    if type(geom_data) is not mulgrid and geom_data is not None:
         raise TypeError('data needs to be type mulgrid. Type ' + str(type(geo)) + ' found. You idiot')
+    elif geom_data is None:
+        raise TypeError('data needs to be type mulgrid. Currently None found. You idiot')    
     else: geo=geom_data
-    if type(results) is not t2listing:
+    if type(results) is not t2listing and results is not None:
         raise TypeError('results needs to be type t2listing. Type ' + str(type(geo)) + ' found. You idiot')
+    elif results is None:
+        if sat <> {}:
+            print('No Results files (flow.out) passed. OKAY THOUGH...... Saturation date provided so using that')
+        
 
     
     grid=dat.grid # define input grid
     width=geo.bounds[1][1]-geo.bounds[0][1]   
-    makeradial(geo,None,width=width)
+    if not geo.radial:    
+        makeradial(geo,None,width=width)
 
     
     ## create directory for results
@@ -533,7 +551,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     wellno=0
     maxtime=20
     outtimes=[outtime for outtime in results.times if outtime/yrsec <= maxtime]
-    sat={}  # set or resest dictionary of saturations
+    #sat={}  # set or resest dictionary of saturations
     
     for well in wells:
         twell=time.clock()
@@ -594,9 +612,8 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
             if count < results.times.size:
                 t0=time.clock()
                 print('On Station %d of %d' % (wellno,len(wells)))
-                print('timestep %d out of %d (%5.2f yrs)' % (count+1,results.times.size,results.time/yrsec))
-                if str(outtime) not in sat: # for first well pull out saturation for each tstep 
-                    print 'redoing sat    '                
+                print('timestep %d out of %d (%5.2f yrs)' % (count+1,results.times.size,outtime/yrsec))
+                if str(outtime) not in sat: # for first well pull out saturation for each tstep                
                     sat[str(outtime)]=copy.copy(results.element['SL'][1:]) # pull out saturation index [0] is the atmosphere cell so no use to us                
                     results.next() # move to next timestep             
                 dg=[] # array for collecting together elemental contributions of integral method
@@ -636,7 +653,6 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
                 grav=6.67e-3*sum(dg)
                 gravt.append(grav) # compile gravity due to water at current survey point for each timestep 
                 print grav
-                results.next() # move to next timestep 
                 count+=1 # incrment timestep counter
                 dt=time.clock()-t0
                 print('time for timestep = %e s' % dt)
@@ -666,13 +682,13 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         gcont2=ma.array(dumgrid2,mask=np.isnan(dumgrid2))   
         #gcont=griddata(np.vstack((xs,zs)).T,np.array(dg/xzarea)*6.67e-3,(xi,zi),method='nearest')
         elcont=plt.figure(figsize=[8,3.6]) 
-        plt.pcolormesh(xi,zi,gcont,shading='flat',edgecolor='face')
+        plt.pcolormesh(xi,zi,gcont,shading='flat',edgecolor='face', rasterized=True)
         plt.colorbar().set_label(r'Contribution to g (' + r'$\mu$'+'gal/m' + r'$^{2}$'+')')
         plt.xlim((xs.min(),xs.max()))
         plt.ylim((zs.min(),zs.max()))
         
         elcont2=plt.figure(figsize=[8,3.6]) 
-        plt.pcolormesh(xi,zi,gcont2,shading='flat',edgecolor='face')
+        plt.pcolormesh(xi,zi,gcont2,shading='flat',edgecolor='face', rasterized=True)
         plt.colorbar().set_label('Percent contribution of element\n to total water induced gravity (%)')
         plt.xlim((xs.min(),xs.max()))
         plt.ylim((zs.min(),zs.max()))
@@ -701,7 +717,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         # column satuation over time
         T,Z=np.meshgrid(times,zlist)
         im2=plt.figure()
-        profplt=plt.pcolormesh(T,Z,wellsl,cmap=cm.jet_r,vmin=0.0,vmax=1.0,shading='flat')
+        profplt=plt.pcolormesh(T,Z,wellsl,cmap=cm.jet_r,vmin=0.0,vmax=0.8,shading='flat',rasterized=True)
         plt.axis([T.min(), T.max(), 0, Z.max()])
         plt.ylabel('Z (m)')
         plt.xlabel('Time (years)')    
@@ -739,14 +755,14 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
            np.savetxt('waterweight'+str(wellno)+'.dat',zip(times,well_water_mass))
            np.savetxt('microgal'+str(wellno)+'.dat',zip(times,microgal))
            np.savetxt('axsym_int_microgal'+str(wellno)+'.dat',zip(times,(gravt-gravt[0])))
-           elcont.savefig(mod+'_elemental_cont'+str(wellno)+'.pdf') 
-           elcont2.savefig(mod+'_elemental_cont_norm'+str(wellno)+'.pdf')
-           im2.savefig(mod+'_sl_t_profile'+str(wellno)+'test.png',dpi=300)
+           elcont.savefig(mod+'_elemental_cont'+str(wellno)+'.pdf',dpi=400) 
+           elcont2.savefig(mod+'_elemental_cont_norm'+str(wellno)+'.pdf',dpi=400)
+           im2.savefig(mod+'_sl_t_profile'+str(wellno)+'.pdf',dpi=400)
            #im2.savefig('sl_t_profile'+str(wellno)+'.eps')
            im1.savefig(mod+'_boug'+str(wellno)+'.pdf')
            intgravplt.savefig(mod+'_axsym_int_grav'+str(wellno)+'.pdf')
-    #
-         #savefig('sl_t_profile.pdf')
+           #
+           #savefig('sl_t_profile.pdf')
            t1=time.clock()
            t=t1-t0
            print 'time2saveplot',t
@@ -763,8 +779,12 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
        t1=time.clock()
        t=t1-t0
        print 'time2writevtks',t
-
-    return results
+    if save:
+        if os.path.isfile('sat.pkl'):
+            print('sat alreay pickled')
+        else:
+            save_obj(sat,'sat.pkl')
+    return results,sat
 #%%
 def grate( modelname, in_ts, winlen=[2,5,10], save=True, input_in="yrs", fall=None, fallmax=None ):
     """ grate( timeseries, window_length, save_option, input_in )\n

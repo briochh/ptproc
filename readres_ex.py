@@ -12,6 +12,7 @@ import pytoughgrav as ptg
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+
 from t2grids import *
 from t2data import * # import classes and routines for creating TOUGH2 files
 from t2incons import *
@@ -26,11 +27,14 @@ readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
 readdat=True ########### I N P U T #########################
 dat_fname='flow2.inp'
-readresults=True ########### I N P U T #########################
+readresults=False ########### I N P U T #########################
 results_fname='flow2.out'
+readsat=True ########### I N P U T #########################
+sat_fname='sat.pkl'
+
 
 save=True ########### I N P U T #########################
-savevtk=True ########### I N P U T #########################
+savevtk=False ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
 modelorigin=(586034.886,1852660.465)
 
@@ -65,7 +69,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150429_1_var' ########### I N P U T #########################
+    mod='20150327_1_var' ########### I N P U T #########################
 
 
 #%%###########################################################################
@@ -79,12 +83,21 @@ if not batch:
         if readgeo is True: 
             print 'Reading geometry from '+ geo_fname
             geo=mulgrid(geo_fname)
+            geo.radial=False # set flag that geometry is not yet radial.
         if readdat is True: 
             print 'Reading input data from '+ dat_fname
             dat=t2data(dat_fname) 
         if readresults is True: 
             print 'Reading results from '+ results_fname
             results=t2listing(results_fname)
+        if readsat is True: 
+            if os.path.isfile(sat_fname):
+                print 'Reading saturation data from '+ sat_fname
+                sat=ptg.load_obj(sat_fname)
+            else: 
+                print('CANT READ SAT FILE......Continuing with sat={}')
+                
+                
     t1=time.clock()        
     print 'time to read=',(t1-t0)
     width=geo.bounds[1][1]-geo.bounds[0][1] #10.0
@@ -100,7 +113,7 @@ if not batch:
     t2=time.clock()
     t=t2-t0
     print 'time2setup=',t
-    results=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo)
+    results,sat=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo)
 
 #%%################################################################
 ######################### BATCH MODE ############################
