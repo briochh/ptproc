@@ -424,16 +424,22 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     else:
         times=[0.0]+np.arange((wavelength/2),length,wavelength/2).tolist()+[length,maxlength]
     #print times
-    numt=len(times)    
+    numt=len(times)
+    xs=[]    
+    zs=[]
+    Areas=[]
     for col in geo.columnlist:
         gxc=[]
         lay=geo.column_surface_layer(col)
         blkname=geo.block_name(lay.name,col.name)
+        xs=xs+[grid.block[blkname].centre[0]]
+        zs=zs+[grid.block[blkname].centre[2]]
         if elev_m is None:
             gx=constant
         else:
             gx=(grid.block[blkname].centre[2]*fm)+fc
-        if gx < mingen: gx=mingen# for elevation dependant recharge!
+        if gx < mingen: gx=mingen
+        # for elevation dependant recharge!
         if knownts:
             for month in ts:
                 gxc=gxc+[((grid.block[blkname].centre[2]*fm)+(fc))*month[0]]
@@ -447,6 +453,7 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     
         gxc=gxc+[gx,gx]
         ex=numt*[1.0942e5]
+        Areas=Areas+[col.area]
         gxa=np.multiply(col.area,gxc).tolist()
         allgens.append(gxa)
         gen=t2generator(name=' q'+col.name,block=blkname,type='COM1',gx=None,ex=None,hg=None,fg=None, rate=gxa, enthalpy=ex,   time=times,ltab=numt,itab=numt-1)
@@ -458,17 +465,27 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     dat.output_times['num_times_specified']=len(dat.output_times['time'])
     dat.output_times['num_times']=200
     allgens=np.array(allgens)
-    gensum=sum(row[:] for row in allgens)
+    gensum=np.sum(allgens,axis=0) # <<< new >>>  old >>> sum(row[:] for row in allgens)
     tforplot=[times[0]]
     tforplot=np.append(tforplot,[2*[j] for j in times[1:-1]]+[times[-2]+yrsec])
     tforplot=np.hstack(tforplot)
     gforplot=[2*[j] for j in gensum[0:-1]]
     gforplot=np.hstack(gforplot)
-    plt.figure()
-    plt.plot(tforplot,gforplot)
+    Area=sum(Areas)
+    fig,ax1=plt.subplots()
+    ax1.plot(tforplot/yrsec,gforplot/Area)
+    ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
+    ax1.set_ylabel(r'Generation rate (kg/s/m$^2$)')
+    ax1.set_xlabel('Time (years)')
+    ax2=ax1.twinx()
+    print max(gforplot/Area)
+    ax2.plot()
+    ax2.set_ylim(0,max(gforplot/Area)*3600*24)   
+    ax2.set_ylabel(r'Equivalent recharge rate (mm/d)')
+    
     plt.savefig(mod+'/rech.pdf')
     np.savetxt(mod+'/genertot.txt',np.vstack((tforplot,gforplot)).T)
-    
+    return allgens,xs,zs,Areas,times
         
 def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=None, geom_data=None, results=None, sat={}, fall=None):
     """ Function to read pytough results and calculate simulated changes in gravity associated with saturation changes.
@@ -480,20 +497,19 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     
     t0=time.clock()
     if type(tough2_input) is not t2data and tough2_input is not None:
-        raise TypeError('data needs to be type t2data. Type ' + str(type(geo)) + ' found. You idiot')
+        raise TypeError('data needs to be type t2data. Type ' + str(type(tough2_input)) + ' found. You idiot')
     elif tough2_input is None:
         raise TypeError('data needs to be type t2data. Currently None found. You idiot')
     else: dat=tough2_input
     if type(geom_data) is not mulgrid and geom_data is not None:
-        raise TypeError('data needs to be type mulgrid. Type ' + str(type(geo)) + ' found. You idiot')
+        raise TypeError('data needs to be type mulgrid. Type ' + str(type(geom_data)) + ' found. You idiot')
     elif geom_data is None:
         raise TypeError('data needs to be type mulgrid. Currently None found. You idiot')    
     else: geo=geom_data
     if type(results) is not t2listing and results is not None:
-        raise TypeError('results needs to be type t2listing. Type ' + str(type(geo)) + ' found. You idiot')
+        raise TypeError('results needs to be type t2listing. Type ' + str(type(results)) + ' found. You idiot')
     elif results is None:
-        if sat <> {}:
-            print('No Results files (flow.out) passed. OKAY THOUGH...... Saturation date provided so using that')
+        print('No Results files (flow.out) passed. please read flow2.out and pass to ptg.readres')
         
 
     
@@ -507,7 +523,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     if not os.path.exists('results'):
         os.makedirs('results')
     os.chdir('results')
-    
+
     density=997.0479 # density of water
     yrsec=3600*24*365.25 # 1 year in seconds
     
@@ -601,6 +617,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
             val,err= integrate.quad(I, 0.0, 2*np.pi)
             # multiply by radius of ring, vertical distance from survey point to ring, xzarea 
             comp.append((zp-blkz)*alpha*val*blkxzarea)
+            # comp.append((zp-blkz)*val*blkxzarea)
             i+=1
         t2=time.clock()
         print 'time to calculate contribution',(t2-t1)

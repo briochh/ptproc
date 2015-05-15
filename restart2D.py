@@ -21,7 +21,7 @@ plt.close('all')
 #%%
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Steffi_GRAV')
 
-mod='20150429_1_var'
+mod='temp'
 basemod='20150429_1'
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -61,7 +61,7 @@ fc=2.15803271989e-06
 #cols=[col for col in geo.columnlist]
 #count=0
 #%% run function
-ptg.gen_variable(mod,geo,grid,dat,ts=rech,elev_m=fm,elev_c=fc)
+allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,ts=rech,elev_m=fm,elev_c=fc)
 #
 #%% write files
 geo.write(mod+'/grd.dat') 
@@ -73,3 +73,17 @@ grid.write_vtk(geo,mod+'/inparam.vtk')
 dat.write(mod+'/flow2.inp')
 shutil.copy('dev_files/initial_it2file',mod+'/'+mod)
 print time.clock()-t0
+
+allgenscaled=np.divide(allgens.T,Areas)
+inds=np.array(xs).argsort()
+scaled_sorted=allgenscaled.T[inds]
+fig,ax1=plt.subplots()
+im=ax1.pcolormesh(np.sort(xs),np.array(times)/3600/24/365.25,scaled_sorted.T,vmin=np.min(scaled_sorted))
+cbar=fig.colorbar(im,ax=ax1,format="%.1e")
+ax1.set_ylim((0,20))
+ax1.set_xlim((0,np.max(xs)))
+ax2=plt.twinx(ax1)
+ax2.scatter(xs,zs)
+ax2.set_xlim((0,np.max(xs)))
+
+

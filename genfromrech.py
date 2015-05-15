@@ -11,6 +11,7 @@ import os
 import numpy as np
 import datetime
 import calendar
+import matplotlib.pyplot as plt
 
 def unique_rows(data):
     """function to find the unique rows in an array"""
@@ -30,6 +31,9 @@ daterainrech=np.hstack((dates,rainrech.T)) # complete date, rainfall and recharg
 #maxyear=dates[:,2].max() # lastyear
 #maxi=dates.shape[0]-1 
 #maxj=maxyear-minyear+1
+
+t = np.array([datetime.datetime(date[2], date[1], date[0]) for date in dates])
+
 
 montotrain=0 # set accumulaters to zero
 montotrech=0
@@ -75,6 +79,22 @@ mura,mure=[np.mean(row)*(1e6/area/(24.*3600.)) for row in rainrech] #kg/s/m2
 norm_monthrech=np.vstack((np.divide(montrechts[:,3],mure),montrechts[:,4])).T
 #save data.
 
+tmon=np.array([datetime.datetime(np.int(date[0]),np.int(date[1]),1) for date in montrechts])
+fig,ax1=plt.subplots()
+ax1.bar(t,rainrech[1])
+ax1.set_ylabel(r'Estimated whole island recharge (ML/day)')
+ax1.set_xlabel('Time (years)')
+ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
+ax2=plt.twinx(ax1)
+ax2.bar(tmon,montrechts[:,3],color='lightblue', edgecolor='lightblue', width=28)
+ax2.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
+ax2.set_ylabel(r'Estimated recharge rate (kg/s/m$^2$)')
+ax1.set_zorder(ax2.get_zorder()+1) # put ax in front of ax2 
+ax2.patch.set_visible(True) # hide the 'canvas' 
+ax1.patch.set_visible(False) # hide the 'canvas' 
+
+
+
 if save:    
     hdr1='normalised recharge\tduration (s)\taverage recharge = '+ str(mure)+ ' kg/s/m2'
     np.savetxt('norm_monthrech.txt',norm_monthrech,header=hdr1,delimiter='\t',fmt='%10.5g')
@@ -82,4 +102,6 @@ if save:
     hdr2='year\tmonth\trainfall(kg/m2/s)\trecharge(kg/m2/s)\tseconds'
     fmt='%4i\t%02i\t%e\t%e\t%e'
     np.savetxt('montrechts.txt',montrechts,header=hdr2,fmt=fmt,delimiter='\t')
+    
+    fig.savefig('Modeled_RechargeTS.pdf')
 

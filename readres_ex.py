@@ -27,10 +27,10 @@ readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
 readdat=True ########### I N P U T #########################
 dat_fname='flow2.inp'
-readresults=False ########### I N P U T #########################
+readresults=True ########### I N P U T #########################
 results_fname='flow2.out'
 readsat=True ########### I N P U T #########################
-sat_fname='sat.pkl'
+sat_fname='results/sat.pkl'
 
 
 save=True ########### I N P U T #########################
@@ -69,7 +69,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150327_1_var' ########### I N P U T #########################
+    mod='20150429_1_var' ########### I N P U T #########################
 
 
 #%%###########################################################################
@@ -87,7 +87,7 @@ if not batch:
         if readdat is True: 
             print 'Reading input data from '+ dat_fname
             dat=t2data(dat_fname) 
-        if readresults is True: 
+        if readresults is True:
             print 'Reading results from '+ results_fname
             results=t2listing(results_fname)
         if readsat is True: 
@@ -96,6 +96,7 @@ if not batch:
                 sat=ptg.load_obj(sat_fname)
             else: 
                 print('CANT READ SAT FILE......Continuing with sat={}')
+                sat={}
                 
                 
     t1=time.clock()        
@@ -113,7 +114,7 @@ if not batch:
     t2=time.clock()
     t=t2-t0
     print 'time2setup=',t
-    results,sat=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo)
+    results,sat=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,sat=sat,tough2_input=dat, geom_data=geo)
 
 #%%################################################################
 ######################### BATCH MODE ############################
