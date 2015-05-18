@@ -905,7 +905,7 @@ def grate( modelname, in_ts, winlen=[2,5,10], save=True, input_in="yrs", fall=No
 
 def relgrav(reference_modelname,test_modelname,reference_ts='axsym_int_microgal5.dat',test_ts=['axsym_int_microgal1.dat'],save=True,time_in='yrs'):
     plt.close('all')    
-    cd=os.getcwd()    
+    cd=os.getcwd()   
     ref_mod=reference_modelname
     mod=test_modelname  
     #ref_grav=reference_ts
@@ -932,8 +932,8 @@ def relgrav(reference_modelname,test_modelname,reference_ts='axsym_int_microgal5
         if time_in is 'yrs':
             yrsec=1
         else: yrsec=3600*24*365.25
-        plt.plot(ref_grav[0]/yrsec,ref_grav[1],'-',linewidth=2)
-        plt.plot(grav[0]/yrsec,grav[1],'-',linewidth=2)
+        plt.plot(ref_grav[0]/yrsec,ref_grav[1],'-',linewidth=2,label='Reference Station')
+        plt.plot(grav[0]/yrsec,grav[1],'-',linewidth=2,label='Benchmark P'+str(num))
 
 
         times=np.array([])
@@ -957,12 +957,13 @@ def relgrav(reference_modelname,test_modelname,reference_ts='axsym_int_microgal5
               else: i=i+1    
                     
                 
-        plt.plot(times/yrsec,gravdif,linewidth=2) 
+        plt.plot(times/yrsec,gravdif,linewidth=2,label='Relative gravity') 
         plt.xlim((0,times.max()/yrsec))
-        plt.ylim((-60,100))
+        plt.ylim((-70,70))
         plt.ylabel(r'$\Delta g$ (microgal)',fontsize=18)
         plt.xlabel('Time (years)',fontsize=18)  
         plt.tick_params(axis='both',labelsize=18)
+        plt.legend()
         if save:                 
            np.savetxt('gravdiff'+str(num)+'.dat',zip(times,gravdif))
            im1.savefig('vsref'+str(num)+'.pdf')   
