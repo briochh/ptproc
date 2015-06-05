@@ -13,8 +13,8 @@ import os
 import pytoughgrav as ptg
 
 
-os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Steffi_GRAV')
-mod='20150429_1' # define model name
+os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi')
+mod='Cota20150604_1' # define model name
 os.chdir(mod)
 if not os.path.exists('results'): 
     os.makedirs('results')   

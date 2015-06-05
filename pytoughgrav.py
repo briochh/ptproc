@@ -30,6 +30,7 @@ import os
 import copy
 import numpy.ma as ma
 import cPickle as pickle
+import random
 
 mpl.rcParams['xtick.labelsize']=14
 
@@ -229,7 +230,7 @@ def grid1D( modelname, basefile, parameter, perm=5.0e-13, poro=0.34, rp={'type':
 
 def geo2D( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
           origin = ([0,0,0]), xcells = None,  zcells = None,
-          surface = None, wells = None):
+          surface = None, wells = None, atmos_type=0, min_thick=2.0):
     """ Function to generate a 2D grid tough2 grid."""
     mod=modelname
     if xcells is None:
@@ -239,7 +240,7 @@ def geo2D( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
         zcells=[celldim]*int((depth/celldim))
     dy=[width]
     #zcells=[10]*34+[2]*80+[10]*19+[2]*30+[10]*25
-    geo = mulgrid().rectangular(xcells,dy,zcells, origin=origin, atmos_type =0, 
+    geo = mulgrid().rectangular(xcells,dy,zcells, origin=origin, atmos_type =atmos_type, 
     convention = 2 )  # creates geometry 20 cells that are 500 m width in x,
     # 1 cell 1000 m width in y
     # 20 cells 100 m high in z  
@@ -253,7 +254,7 @@ def geo2D( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
         colstorefine=[geo.column_containing_point(well) for well in wells]
         geo.refine(np.hstack(colstorefine),bisect='y',chars = '123456789')
     if surface is not None:
-        geo.fit_surface(surface, silent=True, layer_snap=2.0) # fit topograpghy surface
+        geo.fit_surface(surface, silent=True, layer_snap=min_thick) # fit topograpghy surface
     geo.write(mod+'/grd.dat')
     # write geometry to output file 
     return geo
@@ -286,14 +287,14 @@ def grid2D(modelname,geo,dat,rocks,boundcol,lpregion=[[0,0,0],[0,0,0]],satelev=0
                 rocktype='lp   '
                 pmx=grid.rocktype[rocktype].permeability[0]
                 initP=atmosP
-                initSG=0.0
+                initSG=10.7
                 initT=25.0                
                 rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx)                  
             else:
                 rocktype='hp   '
                 pmx=grid.rocktype[rocktype].permeability[0]*np.exp(-pmx_lamda*(hmax-blk.centre[2]))
                 initP=atmosP
-                initSG=0.0
+                initSG=10.7
                 initT=25.0                
                 rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx)
             if blk.centre[2] < satelev:
@@ -338,11 +339,14 @@ def topsurf(surfpath,delim='\t',headerlines=1,width=10):
     return surf
 def makeradial(geo,grid,width=1.):
     """turn 2D grid into radial grid about x=0"""
-    if grid is not None:    
-        for blk in grid.blocklist[1:]:
+    if grid is not None:
+        if len(grid.atmosphere_blocks) == 1:
+            stpoint=1
+        else:
+            stpoint=0
+        for blk in grid.blocklist[stpoint:]:
             blk.volume=blk.volume*2.*np.pi*blk.centre[0]/width
             #col=geo.column[geo.column_name(str(blk))] # column containing current block
-    
         for conn in grid.connection.values():
             #print conn
             #print conn.direction
@@ -394,7 +398,7 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,min
     f.close()
     
 def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/2Ddev/rand.dat",season_bias=0.65,length=100,
-                 wavelength=1,maxlength=3e5,new_rand=False,constant=7.7354e-6,
+                 wavelength=1,maxlength=3e5,new_rand=None,constant=7.7354e-6,
                  elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0942e5):
     """define time dependent generation rate for recharge"""
     dat.clear_generators()
@@ -408,15 +412,19 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     knownts=False    
     
     allgens=[]
-    if new_rand:
+    if new_rand<>None:
         ts=[]
-        for i in xrange(0,numt-3,2): ts=ts+[random.gauss(1,0.31)]
+        times=[0.0]+np.arange((wavelength/2),length,wavelength/2).tolist()+[length,maxlength]
+        numt=len(times)
+        for i in xrange(0,numt-3,2): ts=ts+[random.gauss(1,new_rand)]
+        np.savetxt(mod+'/rand.dat',ts)
     elif isinstance(ts,basestring) and os.path.isfile(ts): 
         ts=np.loadtxt(ts) # load random data file
         np.savetxt(mod+'/rand.dat',ts)
     elif type(ts).__module__ ==  np.__name__:
-        knownts=True
-        np.savetxt(mod+'/init_rech.dat',ts)
+        if np.shape(ts.shape) == 2: # if timeseries is complete with time info
+            knownts=True
+            np.savetxt(mod+'/init_rech.dat',ts)
     #print type(ts)
     if knownts:
         #print knownts
@@ -487,7 +495,7 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     np.savetxt(mod+'/genertot.txt',np.vstack((tforplot,gforplot)).T)
     return allgens,xs,zs,Areas,times
         
-def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=None, geom_data=None, results=None, sat={}, fall=None):
+def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=None, geom_data=None, results=None, sat={}, fall=None, maxtime=20):
     """ Function to read pytough results and calculate simulated changes in gravity associated with saturation changes.
     """
     ## read output file
@@ -565,7 +573,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     #%%
     ## loop over each gravity survey point given in wellx
     wellno=0
-    maxtime=20
+    #maxtime=maxtime
     outtimes=[outtime for outtime in results.times if outtime/yrsec <= maxtime]
     #sat={}  # set or resest dictionary of saturations
     

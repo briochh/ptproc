@@ -19,10 +19,10 @@ import shutil
 t0=time.clock()
 plt.close('all')
 #%%
-os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Steffi_GRAV')
+os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper')
 
-mod='temp'
-basemod='20150429_1'
+mod='20150527_2_var'
+basemod='20150527_2'
 if not os.path.exists(mod):
     os.makedirs(mod)
 
@@ -51,7 +51,7 @@ dat.parameter['option'][12]=2
 dat.parameter['print_block']='ay 40'#############################################################
 
 #%% load recharge data
-rech=np.loadtxt(r'C:\Users\glbjch\Local Documents\Work\Modelling\Steffi_GRAV\dev_files\norm_monthrech.txt')
+rech=np.loadtxt(r'C:\Users\glbjch\Local Documents\Work\Modelling\Gravpaper\dev_files\20150527_2_rand.dat')
 ## Define GENER block
 #fpms=1.01308803322 # flux per meter squared
 #%% evevation dependent params
@@ -61,7 +61,8 @@ fc=2.15803271989e-06
 #cols=[col for col in geo.columnlist]
 #count=0
 #%% run function
-allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,ts=rech,elev_m=fm,elev_c=fc)
+#allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,elev_m=fm,elev_c=fc,season_bias=0.7,new_rand=0.5)
+allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,ts=rech,elev_m=fm,elev_c=fc,season_bias=0.7)
 #
 #%% write files
 geo.write(mod+'/grd.dat') 
@@ -78,12 +79,15 @@ allgenscaled=np.divide(allgens.T,Areas)
 inds=np.array(xs).argsort()
 scaled_sorted=allgenscaled.T[inds]
 fig,ax1=plt.subplots()
-im=ax1.pcolormesh(np.sort(xs),np.array(times)/3600/24/365.25,scaled_sorted.T,vmin=np.min(scaled_sorted))
+im=ax1.pcolormesh(np.sort(xs),np.array(times)/3600/24/365.25,scaled_sorted.T,vmin=np.min(scaled_sorted),cmap='rainbow')
 cbar=fig.colorbar(im,ax=ax1,format="%.1e")
-ax1.set_ylim((0,20))
+ax1.set_ylabel
+ax1.set_xlabel
+ax1.set_ylim((0,110))
 ax1.set_xlim((0,np.max(xs)))
 ax2=plt.twinx(ax1)
 ax2.scatter(xs,zs)
 ax2.set_xlim((0,np.max(xs)))
 
+fig.savefig(mod+'/Variable_recharge.pdf')
 

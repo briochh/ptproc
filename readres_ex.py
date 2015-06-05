@@ -34,7 +34,7 @@ sat_fname='results/sat.pkl'
 
 
 save=True ########### I N P U T #########################
-savevtk=False ########### I N P U T #########################
+savevtk=True ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
 modelorigin=(586034.886,1852660.465)
 
@@ -69,7 +69,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150429_1_var' ########### I N P U T #########################
+    mod='20150527_2' ########### I N P U T #########################
 
 
 #%%###########################################################################
@@ -78,7 +78,7 @@ if not batch:
     t0=time.clock()
     print 'running in straight mode (',batch_or_straight,')'
     print 'model=',mod
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Steffi_GRAV/'+mod)
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper/'+mod)
     if read:
         if readgeo is True: 
             print 'Reading geometry from '+ geo_fname
@@ -103,18 +103,18 @@ if not batch:
     print 'time to read=',(t1-t0)
     width=geo.bounds[1][1]-geo.bounds[0][1] #10.0
     ## define well locations
-    stations=np.genfromtxt('../dev_files/Steffie_station_locs.txt', delimiter=',', dtype=None, skiprows=1, usecols=(0,1) ,names='x,y')
-    station_dists=[np.sqrt(((modelorigin[0]-x)**2 + (modelorigin[1]-y)**2)) for x,y in zip(stations['x'],stations['y'])]
-    station_dists.sort()
-    wellx=station_dists
-    #wellx=[50.0,500.0,1750,2200,2650]##5.0,50.0,500,1750,2200,2650#######################################################
+#    stations=np.genfromtxt('../dev_files/Steffie_station_locs.txt', delimiter=',', dtype=None, skiprows=1, usecols=(0,1) ,names='x,y')
+#    station_dists=[np.sqrt(((modelorigin[0]-x)**2 + (modelorigin[1]-y)**2)) for x,y in zip(stations['x'],stations['y'])]
+#    station_dists.sort()
+#    wellx=station_dists
+    wellx=wellx=[50.0,500.0,1100.0,1750,2650,3200]#[50.0,500.0,1750,2200,2650]##5.0,50.0,500,1750,2200,2650#######################################################
     #wellx=[50.0]################################################################
     welly=[width/2.0]*len(wellx) # make y coords same length as x coords
     wells=np.hstack((np.transpose([wellx]),np.transpose([welly])))
     t2=time.clock()
     t=t2-t0
     print 'time2setup=',t
-    results,sat=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,sat=sat,tough2_input=dat, geom_data=geo)
+    results,sat=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,sat=sat,tough2_input=dat, geom_data=geo, maxtime=110)
 
 #%%################################################################
 ######################### BATCH MODE ############################
@@ -153,4 +153,3 @@ if batch:
         ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,tough2_input=dat, geom_data=geo,fall=fall)
     fall.close()
 print 'time to run =', time.clock()-tinit
-       
