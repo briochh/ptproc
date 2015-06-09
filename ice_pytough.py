@@ -18,6 +18,7 @@ import shutil
 import time
 import os
 import pytoughgrav as ptg
+import matplotlib.pyplot as plt
 
 def icegeo( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
           origin = ([0,0,0]), xcells = None,  zcells = None,
@@ -188,3 +189,179 @@ def simple_readres( modelname, savevtk=False, tough2_input=None, geom_data=None,
        print 'time2writevtks',t
     os.chdir(current_d)   
     return results
+    
+def icepost( modelname, save=False, savevtk=False, geom_data=None, results=None, times={}, fall=None,flows={'FLOH':{},'FLOF':{}}):
+    """ Function to calculated surface heat flow from pytough results
+    """
+    t0=time.clock()
+#    if type(tough2_input) is not t2data and tough2_input is not None:
+#        raise TypeError('data needs to be type t2data. Type ' + str(type(tough2_input)) + ' found. You idiot')
+#    elif tough2_input is None:
+#        raise TypeError('data needs to be type t2data. Currently None found. You idiot')
+#    else: dat=tough2_input
+    if type(geom_data) is not mulgrid and geom_data is not None:
+        raise TypeError('data needs to be type mulgrid. Type ' + str(type(geom_data)) + ' found. You idiot')
+    elif geom_data is None:
+        raise TypeError('data needs to be type mulgrid. Currently None found. You idiot')    
+    else: geo=geom_data
+    if type(results) is not t2listing and results is not None:
+        raise TypeError('results needs to be type t2listing. Type ' + str(type(results)) + ' found. You idiot')
+    elif results is None:
+        print('No Results files (flow.out) passed. please read flow2.out')
+    results=results   
+    width=geo.bounds[1][1]-geo.bounds[0][1]   
+    yrsec=365.25*3600*24
+    mod=modelname
+    if not geo.radial:    
+        ptg.makeradial(geo,None,width)
+        
+    # find atmosphere blocks
+    grid2=t2grid().fromgeo(geo) # grid saved in flow2.inp does not contain atmos information required.
+    atmos=[]
+    atmosconn=[]    
+    for flow in flows:
+        if flows[flow]=={}:
+            if atmos==[]:
+                atmos=grid2.atmosphere_blocks
+                # find atmosphere connections
+                atmosconn=[cell.connection_name for cell in atmos] # returns a list of sets - !!!! sets are not ordered so cannot be indexed !!! 
+            flows[flow],times = surfaceflow(atmos,atmosconn,results=results,grid=grid2,flow=flow)
+        tq=times
+        X=[]
+        qts=[]
+        Area=[]
+        for x,a,q in flows[flow].values():
+            X.append(x)
+            qts.append(q)
+            Area.append(a)
+        inds=np.array(X).argsort()
+        X=np.array(X)[inds]
+        qts=np.array(qts)[inds] # J/s/m2
+        Area=np.array(Area)[inds]
+        totq=qts.sum(axis=0)
+            
+        if flow=='FLOH': # calculate meltrate etc.
+            unit='W'
+            meltratematrix= (qts.T/3.35E5) # kg/s/m2
+            i=0
+            meltrate=np.zeros(len(tq))
+            for t in tq:
+                for x,A,r in zip(X,Area,meltratematrix[i]):
+                    if r> 0 and x < 2500:
+                        meltrate[i]= meltrate[i] + (r*A) # kg/s
+                i=i+1  
+            meltrate_mpyr= (meltrate*(yrsec)/1000)/(np.pi*(2500**2)) # m3/yr/m2 = m/yr
+        else:
+            unit='kg/s'
+            
+        # plottings    
+        tscale=tq/yrsec
+        logtscale=np.log10(tscale)    
+        ## a quick plot of flows into atmosphere at X and time.
+        plt.figure()
+        plt.pcolormesh(X,logtscale,qts.T, rasterized=True)
+        cbar=plt.colorbar()
+        cbar.set_label(flow + r' out of the model ('+ unit + r'/m$^{2}$)')
+        #plt.xlim(0,2500)
+        plt.ylim(logtscale.min(),logtscale.max())
+        plt.title('Flow ('+flow+') out of the model')
+        plt.xlabel('Distance from axial centre (m)')
+        plt.ylabel('Time (yrs)')
+        
+        if save:
+            if os.path.isfile(flow+'.pkl'):
+                print(flow+' flow alreay pickled')
+            else:
+                ptg.save_obj(flows[flow],flow+'.pkl')  
+            if os.path.isfile('time.pkl'):
+                print('time alreay pickled')
+            else:
+                ptg.save_obj(tq,'time.pkl')
+            plt.savefig('results/'+mod+'_'+flow+'_.pdf',dpi=400)
+            
+    if savevtk and os.path.isfile('results/'+mod+'_output.vtk') is False:
+        os.chdir('results')
+        results.write_vtk(geo,mod+'_output.vtk',grid=grid2,flows=True)
+    
+    
+    plt.figure()
+    plt.pcolormesh(X,logtscale,meltratematrix*yrsec, rasterized=True) # mm/yr
+    cbar=plt.colorbar(format='%.0e')
+    cbar.set_label(r'Melt rate 'r'(mm/yr)')
+    ##plt.xlim((0,2500))
+    plt.ylim(logtscale.min(),logtscale.max())
+    plt.title('Glacial melt rate')
+    ##plt.xlabel('
+    ##plt.ylabel('
+    #
+    #plt.savefig("/Users/molly/Documents/Project/Restart_images/Post_heating/" + mod + "Melt rate.pdf", dpi=500)
+    #plt.close()
+    
+
+    #############
+    
+    
+    #np.savetxt("melt_time.txt", np.vstack(([tq], [meltrate],[meltrate_mpyr])).T)
+       
+    plt.figure()
+    plt.plot(tscale,meltrate_mpyr)
+    #plt.xlim(0, 30000)
+    plt.xlabel('Years after end of thermal perturbation')
+    plt.ylabel('Average melt rate (m/yr) at glacial base')
+    plt.title('Average basal meltrate following thermal perturbation \n of 350 degrees for 1ky at 2.5km depth')
+    #plt.savefig("/Users/molly/Documents/Project/Restart_images/Meltrate_following_perturbation*", dpi=500)
+    #plt.close() 
+    
+    
+    #==============================================================================
+    # Change in meltrate over time at various X
+    #==============================================================================
+    
+#    meltratechange=np.array([tstep-meltratematrix[0] for tstep in meltratematrix])
+#    plt.figure()
+#    plt.pcolormesh(X,np.log10(tq),qts.T, rasterized=True, cmap='rainbow')
+#    #plt.xlim((0,2500))
+#    #plt.ylim((0 , 30000))
+#    plt.xlabel('Distance from centre of volcano (m)')
+#    plt.ylabel('Years after end of thermal perturbation')
+#    cbar=plt.colorbar()
+#    cbar.set_label(r'Increase in melt rate 'r'(Kg/y/m$^{2}$)')
+#    plt.title('Change in meltrate following thermal perturbation \n with distance from crater centre')
+    #plt.savefig("/Users/molly/Documents/Project/Restart_images/Meltrate_at_X_with_time*", dpi=500)
+    #plt.close()
+
+
+        
+def surfaceflow(atmoscells,atmosconns,results=None,grid=None,flow='FLOH'):
+#    totq=glac_toq=np.zeros(results.num_times) # arrays for adding total flows at each timstep 
+#    X=np.array([]).reshape(0,1) # array for storing the x dimension of each connection 
+#    Area=np.array([]).reshape(0,1)
+#    qts=[] # empty list for storing all flows
+    flowDict={}    
+    for atmosset in atmosconns: # loop over each set of atmos connections
+        for conn in atmosset: # loop over each connection in set
+            cell1,cell2=conn
+            # tq is time, q is flow
+            (tq,q) = results.history([('c', conn, flow)]) # here just pull out flow of HEAT (could do more)
+            # flow from cell1 to cell2 is negative we want to make it uniform so that flow into the atmosphere is always negative
+            if grid.block[cell2] in atmoscells:
+                q=-q/(grid.connection[conn].area) # divide by conneciton area to get flux in /m2
+                cen=grid.block[cell1].centre # 
+            elif grid.block[cell1] in atmoscells:
+                q=q/(grid.connection[conn].area) # if atmos cell is cell1 the sign of the flow needs to be switched
+                cen=grid.block[cell2].centre
+            flowDict[conn]=cen[0],grid.connection[conn].area,q # dictionary of flow timseries for each connection
+    
+            # compile all the flow time series (for each connection)        
+#            if qts == []:
+#                qts=[q] # the first time through need to initialise our list
+#            else:
+#                qts=np.concatenate((qts,[q]),axis=0) # add the current flow time series to our compilations
+#            X=np.append(X,cen[0]) # also create array of connection distance
+#            Area= np.append(Area,grid2.connection[conn].area)
+#            totq=np.add(totq,q) # timeseries of total heat flux into atmos 
+#            # can look at total heat flux that is within a certain X limit (e.g. within the range of a glacier)        
+#            if cen[0] <= 2500.0:
+#                glac_toq=np.add(glac_toq,q) 
+            #atxs[conn]=cen[0]
+    return flowDict,tq
