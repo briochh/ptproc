@@ -58,7 +58,7 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
             else:
                 initT = 25.8 - (hmax*(5.4/1000)) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
                 if initT <= Tmin: initT=Tmin
-            initSG=0.0 # initial gas saturation
+            initSG=1.0 # initial gas saturation
             infvol=False # already given 1e50 volume
             pmx=grid.rocktype[rocktype].permeability[0]
         else:
@@ -106,7 +106,6 @@ def pmxcalc(blk,grid,hmax,rock,Saar_lam=0.004,switch_depth=None):
     return pmx        
 
 def heatgen(mod,geo,dat,grid,heat_flux):
-    dat.clear_generators()
     f = open(mod+'/genertot.txt','w')
     f.write('Model = '+mod+'\n')
     allgens=[]
@@ -190,15 +189,14 @@ def simple_readres( modelname, savevtk=False, tough2_input=None, geom_data=None,
     os.chdir(current_d)   
     return results
     
-def icepost( modelname, save=False, savevtk=False, geom_data=None, results=None, times={}, fall=None,flows={'FLOH':{},'FLOF':{}}):
+def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=None, results=None, times={}, fall=None,flows={'FLOH':{},'FLOF':{}}, logt=False):
     """ Function to calculated surface heat flow from pytough results
     """
-    t0=time.clock()
-#    if type(tough2_input) is not t2data and tough2_input is not None:
-#        raise TypeError('data needs to be type t2data. Type ' + str(type(tough2_input)) + ' found. You idiot')
-#    elif tough2_input is None:
-#        raise TypeError('data needs to be type t2data. Currently None found. You idiot')
-#    else: dat=tough2_input
+    if type(tough2_input) is not t2data and tough2_input is not None:
+        raise TypeError('data needs to be type t2data. Type ' + str(type(tough2_input)) + ' found. You idiot')
+    elif tough2_input is None:
+        raise TypeError('data needs to be type t2data. Currently None found. You idiot')
+    else: dat=tough2_input
     if type(geom_data) is not mulgrid and geom_data is not None:
         raise TypeError('data needs to be type mulgrid. Type ' + str(type(geom_data)) + ' found. You idiot')
     elif geom_data is None:
@@ -214,12 +212,13 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, results=None,
     mod=modelname
     if not geo.radial:    
         ptg.makeradial(geo,None,width)
-        
     # find atmosphere blocks
+    grid=dat.grid # define input grid    
     grid2=t2grid().fromgeo(geo) # grid saved in flow2.inp does not contain atmos information required.
     atmos=[]
     atmosconn=[]    
     for flow in flows:
+        t0=time.clock()
         if flows[flow]=={}:
             if atmos==[]:
                 atmos=grid2.atmosphere_blocks
@@ -236,13 +235,23 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, results=None,
             Area.append(a)
         inds=np.array(X).argsort()
         X=np.array(X)[inds]
-        qts=np.array(qts)[inds] # J/s/m2
+        qts=np.array(qts)[inds] # J/s/m2 or kg/s/m2
         Area=np.array(Area)[inds]
-        totq=qts.sum(axis=0)
+        totq=np.sum(np.multiply(qts.T,Area),axis=1)
             
         if flow=='FLOH': # calculate meltrate etc.
             unit='W'
-            meltratematrix= (qts.T/3.35E5) # kg/s/m2
+            meltratematrix= (qts.T/3.35E5) # kg/s/m2 
+            # but negative meltrate cant exist....
+            # where heatflow is negative and meltrate is negative set meltrate=0
+            #tempdel=np.array([tstep-meltratematrix[0] for tstep in meltratematrix]) # kg/s/m2 ~ mm/s
+            meltratematrix[meltratematrix<0]=0 # kg/s/m2 
+            # change in meltrate
+            deltameltrate=np.array([tstep-meltratematrix[0] for tstep in meltratematrix]) # kg/s/m2 ~ mm/s
+            #meltrate just within glacier            
+            glacmeltrate=meltratematrix.T[X<2500].T  # kg/s/m2 ~ mm/s
+            #change in meltrate within glacier 
+            deltaglacmeltrate=deltameltrate.T[X<2500].T # kg/s/m2 ~ mm/s
             i=0
             meltrate=np.zeros(len(tq))
             for t in tq:
@@ -250,53 +259,115 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, results=None,
                     if r> 0 and x < 2500:
                         meltrate[i]= meltrate[i] + (r*A) # kg/s
                 i=i+1  
-            meltrate_mpyr= (meltrate*(yrsec)/1000)/(np.pi*(2500**2)) # m3/yr/m2 = m/yr
+            meltrate_mmpyr= (meltrate*yrsec)/(np.pi*(2500**2)) # kg/yr/m2 ~ mm/yr
         else:
             unit='kg/s'
-            
-        # plottings    
+         
+        # plottings
         tscale=tq/yrsec
-        logtscale=np.log10(tscale)    
+        if logt:
+            tscale=np.log10(tscale) 
         ## a quick plot of flows into atmosphere at X and time.
         plt.figure()
-        plt.pcolormesh(X,logtscale,qts.T, rasterized=True)
-        cbar=plt.colorbar()
+        plt.pcolormesh(X,tscale,qts.T, rasterized=True,cmap='rainbow') #W or (ks/s) /m2
+        cbar=plt.colorbar(format='%.0e')
         cbar.set_label(flow + r' out of the model ('+ unit + r'/m$^{2}$)')
         #plt.xlim(0,2500)
-        plt.ylim(logtscale.min(),logtscale.max())
+        plt.ylim(tscale.min(),tscale.max())
         plt.title('Flow ('+flow+') out of the model')
         plt.xlabel('Distance from axial centre (m)')
         plt.ylabel('Time (yrs)')
+        if save:
+            plt.savefig('results/'+mod+'_'+flow+'_.pdf',dpi=400)
+        
+        qout=np.copy(qts.T)
+        qout[qout<0]=0
+        qin=np.copy(qts.T)
+        qin[qin>0]=0
+        delqout=np.array([tstep-qout[0] for tstep in qout]) # kg/s/m2 ~ mm/s
+        delqin=np.array([qin[0]-tstep for tstep in qin])    
+        
+        plt.figure()
+        plt.pcolormesh(X,tscale,delqout, rasterized=True,cmap='rainbow') #W or (ks/s) /m2
+        cbar=plt.colorbar(format='%.0e')
+        cbar.set_label('Change in '+ flow + r' out of the model ('+ unit + r'/m$^{2}$)')
+        #plt.xlim(0,2500)
+        plt.ylim(tscale.min(),tscale.max())
+        plt.title('Change in flow ('+flow+') out of the model')
+        plt.xlabel('Distance from centre axis (m)')
+        plt.ylabel('Time (yrs)')
+        if save:
+            plt.savefig('results/'+mod+'_delout_'+flow+'_.pdf',dpi=400)
+        
+        plt.figure()
+        plt.pcolormesh(X,tscale,delqin, rasterized=True,cmap='rainbow') #W or (ks/s) /m2
+        cbar=plt.colorbar(format='%.0e')
+        cbar.set_label('Change in '+ flow + r' in to the model ('+ unit + r'/m$^{2}$)')
+        #plt.xlim(0,2500)
+        plt.ylim(tscale.min(),tscale.max())
+        plt.title('Change in flow ('+flow+') in to the model')
+        plt.xlabel('Distance from centre axis (m)')
+        plt.ylabel('Time (yrs)')
+        if save:
+            plt.savefig('results/'+mod+'_delin_'+flow+'_.pdf',dpi=400)        
+#        plt.figure()
+#        plt.plot(tscale,totq)
+#        #plt.xlim(0, 30000)
+#        plt.xlabel('Time (years)')
+#        plt.ylabel('Net flow ('+unit+')')
+#        plt.title('Net flow in/out of surface')
+
         
         if save:
-            if os.path.isfile(flow+'.pkl'):
+            if os.path.isfile('results/'+flow+'.pkl'):
                 print(flow+' flow alreay pickled')
             else:
-                ptg.save_obj(flows[flow],flow+'.pkl')  
-            if os.path.isfile('time.pkl'):
+                ptg.save_obj(flows[flow],'results/'+flow+'.pkl')  
+            if os.path.isfile('results/time.pkl'):
                 print('time alreay pickled')
             else:
-                ptg.save_obj(tq,'time.pkl')
-            plt.savefig('results/'+mod+'_'+flow+'_.pdf',dpi=400)
+                ptg.save_obj(tq,'results/time.pkl')
+        t1=time.clock()   
+        print 'time for flow=',(t1-t0)  
             
     if savevtk and os.path.isfile('results/'+mod+'_output.vtk') is False:
         os.chdir('results')
-        results.write_vtk(geo,mod+'_output.vtk',grid=grid2,flows=True)
-    
+        results.write_vtk(geo,mod+'_output.vtk',grid=grid,flows=True)
+        os.chdir('..')
     
     plt.figure()
-    plt.pcolormesh(X,logtscale,meltratematrix*yrsec, rasterized=True) # mm/yr
+    plt.pcolormesh(X,tscale,meltratematrix, rasterized=True,cmap='rainbow') # mm/s
     cbar=plt.colorbar(format='%.0e')
-    cbar.set_label(r'Melt rate 'r'(mm/yr)')
-    ##plt.xlim((0,2500))
-    plt.ylim(logtscale.min(),logtscale.max())
-    plt.title('Glacial melt rate')
-    ##plt.xlabel('
-    ##plt.ylabel('
-    #
-    #plt.savefig("/Users/molly/Documents/Project/Restart_images/Post_heating/" + mod + "Melt rate.pdf", dpi=500)
-    #plt.close()
+    cbar.set_label(r'Melt rate (kg/s/m$^{2}$)')
+    #plt.xlim((0,2500))
+    plt.ylim(tscale.min(),tscale.max())
+    plt.xlabel('Distance from centre axis (m)')
+    plt.ylabel('Time (yrs)')    
+    plt.title('Melt rate')
+    if save:
+        plt.savefig('results/'+mod+'_meltrate_.pdf',dpi=400)  
+       
+    plt.figure()
+    plt.pcolormesh(X,tscale,deltameltrate, rasterized=True,cmap='rainbow') # mm/s
+    cbar=plt.colorbar(format='%.0e')
+    cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
+    #plt.xlim((0,2500))
+    plt.ylim(tscale.min(),tscale.max())
+    plt.xlabel('Distance from centre axis (m)')
+    plt.ylabel('Time (yrs)') 
+    plt.title('Change in melt rate')
+    if save:
+        plt.savefig('results/'+mod+'_meltrate_delta_.pdf',dpi=400)  
     
+    plt.figure()
+    plt.pcolormesh(X[X<2500],tscale,deltaglacmeltrate, rasterized=True,cmap='rainbow') # mm/s
+    cbar=plt.colorbar(format='%.0e')
+    cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
+    plt.xlim((0,2500))
+    plt.ylim(tscale.min(),tscale.max())
+    plt.title('Change in glacial melt rate')
+    if save:
+        plt.savefig('results/'+mod+'_glacmeltrate_delta_.pdf',dpi=400) 
 
     #############
     
@@ -304,31 +375,14 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, results=None,
     #np.savetxt("melt_time.txt", np.vstack(([tq], [meltrate],[meltrate_mpyr])).T)
        
     plt.figure()
-    plt.plot(tscale,meltrate_mpyr)
+    plt.plot(tscale,meltrate_mmpyr)
     #plt.xlim(0, 30000)
-    plt.xlabel('Years after end of thermal perturbation')
-    plt.ylabel('Average melt rate (m/yr) at glacial base')
-    plt.title('Average basal meltrate following thermal perturbation \n of 350 degrees for 1ky at 2.5km depth')
-    #plt.savefig("/Users/molly/Documents/Project/Restart_images/Meltrate_following_perturbation*", dpi=500)
-    #plt.close() 
+    plt.xlabel('Time (yrs)')
+    plt.ylabel('Average melt rate at glacial base (mm/yr)')
+    plt.title('Average basal meltrate')
+    if save:
+        plt.savefig('results/'+mod+'_basalmelt.pdf')
     
-    
-    #==============================================================================
-    # Change in meltrate over time at various X
-    #==============================================================================
-    
-#    meltratechange=np.array([tstep-meltratematrix[0] for tstep in meltratematrix])
-#    plt.figure()
-#    plt.pcolormesh(X,np.log10(tq),qts.T, rasterized=True, cmap='rainbow')
-#    #plt.xlim((0,2500))
-#    #plt.ylim((0 , 30000))
-#    plt.xlabel('Distance from centre of volcano (m)')
-#    plt.ylabel('Years after end of thermal perturbation')
-#    cbar=plt.colorbar()
-#    cbar.set_label(r'Increase in melt rate 'r'(Kg/y/m$^{2}$)')
-#    plt.title('Change in meltrate following thermal perturbation \n with distance from crater centre')
-    #plt.savefig("/Users/molly/Documents/Project/Restart_images/Meltrate_at_X_with_time*", dpi=500)
-    #plt.close()
 
 
         

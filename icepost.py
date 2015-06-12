@@ -19,21 +19,22 @@ import ice_pytough as ipt
 t0=tinit=time.clock()
 plt.close('all')
 
-mod='Cota20150604_1' # define model name
+mod='Cota20150612_1' # define model name
 read=True ########### I N P U T #########################
 readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
 readdat=True ########### I N P U T #########################
 dat_fname='flow2.inp'
-readresults=False ########### I N P U T #########################
+readresults=True ########### I N P U T #########################
 results_fname='flow2.out'
-readflowH=True ########### I N P U T #########################
-flowH_fname='FLOH.pkl'
-readflowF=True ########### I N P U T #########################
-flowF_fname='FLOF.pkl'
+readflow=True ########### I N P U T #########################
+#flowH_fname='results/FLOH.pkl'
+#readflowF=True ########### I N P U T #########################
+#flowF_fname='results/FLOLIQ.pkl'
 
-save=False ########### I N P U T #########################
-savevtk=False ########### I N P U T #########################
+save=True ########### I N P U T #########################
+savevtk=True ########### I N P U T #########################
+flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+mod)    
@@ -51,22 +52,24 @@ if read:
     if readresults is True:
         print 'Reading results from '+ results_fname
         results=t2listing(results_fname)
-    if readflowH is True and os.path.isfile(flowH_fname):
-        print 'Reading saturation data from '+ flowH_fname
-        flowH=ptg.load_obj(flowH_fname)
-        times=ptg.load_obj('time.pkl')
+    if readflow is True:
+        if os.path.isfile('results/time.pkl'):
+            times=ptg.load_obj('results/time.pkl')
+        for flow in flows.keys():
+            flow_fname='results/'+flow+'.pkl'
+            if os.path.isfile(flow_fname):
+                print 'Reading saturation data from '+ flow_fname
+                flows[flow]=ptg.load_obj(flow_fname)
+            else: 
+                print('CANT READ flow FILE ('+flow_fname+'......Continuing with flows['+flow+']={}')
+                flows[flow]={}
     else: 
-        print('CANT READ flow FILE......Continuing with flowH={}')
-        flowH=times={}
-    if readflowF is True and os.path.isfile(flowF_fname):
-        print 'Reading saturation data from '+ flowF_fname
-        flowF=ptg.load_obj(flowF_fname)
-        #times=ptg.load_obj('time.pkl')
-    else: 
-        print('CANT READ flow FILE......Continuing with flowF={}')
-        flowF={}
+        print('Not reading '+flow+'.pkl.flows['+flow+']={}')
+        flows[flow]={}
+        
+
 t1=time.clock()        
 print 'time to read=',(t1-t0)  
       
-ipt.icepost(mod, geom_data=geo, results=results, times=times, save=save, savevtk=savevtk, flows={'FLOH':flowH,'FLOF':flowF})
+ipt.icepost(mod, geom_data=geo,tough2_input=dat, results=results, times=times, save=save, savevtk=savevtk,flows=flows)
 print 'time to run =', time.clock()-tinit

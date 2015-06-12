@@ -21,17 +21,17 @@ import pytoughgrav as ptg
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150604_1'
+mod='Cota20150612_1'
 if not os.path.exists(mod):
     os.makedirs(mod)
 #%%
 origin=[0,0,6000] # position of first cell in space
 width=1.0
-zcells=[50]*30+[100]*15    #+[100]*6+[50]*10+[10]*20    
+zcells=[10]*100+[50]*10+[100]*15    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
-xcells=[50]*77+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
+xcells=[10]*250+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 
-surf=ptg.topsurf('dev_files/Topography_flattop.txt',delim='\t',headerlines=1,width=width)
+surf=ptg.topsurf('dev_files/Topography_crater.txt',delim='\t',headerlines=1,width=width)
 
 geo=ipt.icegeo( mod, width=width, celldim=10., origin=origin,
               zcells=zcells, xcells=xcells, surface=surf, atmos_type=1, min_thick=5.0)
@@ -60,7 +60,16 @@ dat.incon.clear()
 # define object name for rock type. e.g. hp is the python object 'main ' will be the name of the ROCK in TOUGH input file. THE SPACE IN THE NAME IS IMPORTANT - MUST BE 5 char!
 main=rocktype('main ', nad=3, permeability = [perm]*2+[perm],
 porosity=poro) 
-main.conductivity= 1 #  M/(m K) from Hickey - cotapaxi
+main.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
+main.tortuosity=0.0
+main.relative_permeability=rp # if single phase this has no effect
+main.capillarity=cp # if single phase this has no effect
+main.specific_heat=1000.0 # J/(kg K) from Hickey - cotapaxi
+rtypes=rtypes+[main] # add object to list of rocktypes
+
+main=rocktype('surf ', nad=3, permeability = [perm]*2+[perm],
+porosity=poro) 
+main.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
 main.tortuosity=0.0
 main.relative_permeability=rp # if single phase this has no effect
 main.capillarity=cp # if single phase this has no effect
@@ -146,14 +155,16 @@ ptg.makeradial(geo,grid,width=width)
 
 # additional output parameters 
 dat.parameter['max_timestep']=3.0e10 # maximum timstep length
-dat.parameter['print_interval']=10 # print (output) frequency to flow.out
+dat.parameter['print_interval']=50 # print (output) frequency to flow.out
 dat.parameter['timestep']=[1000.0] # initial timestep?
 dat.output_times['time']=[1000.0,3600.0,8.6400e+04,3.1558e+07,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
 dat.output_times['num_times_specified']=8
 dat.output_times['num_times']=8
 #
 #
+dat.clear_generators()
 ipt.heatgen(mod,geo,dat,grid,heat_flux)
+ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy=844.)
 
 geo.write(mod+'/grd.dat')   
 # Add data stored in grid object to pyTOUGH dat object - this is what gets turned into the TOUGH input file        

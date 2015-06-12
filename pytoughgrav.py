@@ -362,8 +362,7 @@ def makeradial(geo,grid,width=1.):
         col.area=2*np.pi*col.centre[0]*col.area/width
     geo.radial=True
            
-def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0942e5):
-    dat.clear_generators()
+def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0492e5):
     f = open(mod+'/genertot.txt','w')
     f.write('Model = '+mod+'\n')
     allgens=[]
