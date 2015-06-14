@@ -14,8 +14,9 @@ from t2grids import *
 from t2data import * # import classes and routines for creating TOUGH2 files
 from t2incons import *
 from t2listing import *
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 #import matplotlib.mlab as ml
 import numpy as np
