@@ -19,7 +19,7 @@ import ice_pytough as ipt
 t0=tinit=time.clock()
 plt.close('all')
 
-mod='Cota20150612_1' # define model name
+mod='Cota20150612_1_rtn' # define model name
 read=True ########### I N P U T #########################
 readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'

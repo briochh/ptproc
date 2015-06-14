@@ -21,7 +21,7 @@ import pytoughgrav as ptg
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150612_1'
+mod='Cota20150614_1'
 if not os.path.exists(mod):
     os.makedirs(mod)
 #%%
@@ -144,7 +144,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol)#,hpregion=[[0,0,3000],[50,0,5000]],heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,hpregion=[[0,0,3000],[250,0,6000]])#,heatsource=[[0,0,3000],[1500,0,3050]])
 ptg.makeradial(geo,grid,width=width)
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
@@ -157,9 +157,9 @@ ptg.makeradial(geo,grid,width=width)
 dat.parameter['max_timestep']=3.0e10 # maximum timstep length
 dat.parameter['print_interval']=50 # print (output) frequency to flow.out
 dat.parameter['timestep']=[1000.0] # initial timestep?
-dat.output_times['time']=[1000.0,3600.0,8.6400e+04,3.1558e+07,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
-dat.output_times['num_times_specified']=8
-dat.output_times['num_times']=8
+dat.output_times['time']=[1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
+dat.output_times['num_times_specified']=len(dat.output_times['time'])
+dat.output_times['num_times']=len(dat.output_times['time'])
 #
 #
 dat.clear_generators()
