@@ -20,26 +20,31 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Cota20150612_1'
+model='Cota20150614_1'
 yrsec=365.25*24*3600
 models=[model,model+'_ptb',model+'_rtn']
 times={}
 ts=np.zeros(1)
+
 if save:
     os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+model)
     if not os.path.exists('stitched'): 
         os.makedirs('stitched')
+stitchpath='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+model+'/stitched/'
+
 flows=['FLOH','FLO(LIQ.)','FLO(GAS)']        
 for flow in flows:
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/')
     print flow
     data={}
     for mod in models:
         print 'model=',mod
-        os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+mod+'/results')
+#        os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/')
+        os.chdir(mod)
         if ts[0]==0.0: # if first time through ts starts with 0
-            times[str(mod)]=ptg.load_obj('time.pkl')
+            times[str(mod)]=ptg.load_obj('results/time.pkl')
             ts=np.concatenate((ts,np.add(ts[-1],times[str(mod)])))
-        data[str(mod)]=ptg.load_obj(flow+'.pkl')
+        data[str(mod)]=ptg.load_obj('results/'+flow+'.pkl')
     
     
     data['stitch']=copy.copy(data[str(models[0])])
@@ -82,7 +87,7 @@ for flow in flows:
     plt.xlabel('Distance from axial centre (m)')
     plt.ylabel('Time (yrs)')
     if save:
-        plt.savefig('../../'+model+'/stitched/'+flow+'.pdf',dpi=400)
+        plt.savefig(stitchpath+flow+'.pdf',dpi=400)
 
     qout=np.copy(qts)
     qin=np.copy(qts)
@@ -111,7 +116,7 @@ for flow in flows:
     plt.xlabel('Distance from axial centre (m)')
     plt.ylabel('Time (yrs)')
     if save:
-        plt.savefig('../../'+model+'/stitched/delout_'+flow+'.pdf',dpi=400)
+        plt.savefig(stitchpath+'delout_'+flow+'.pdf',dpi=400)
 
     
     plt.figure()
@@ -124,24 +129,21 @@ for flow in flows:
     plt.xlabel('Distance from axial centre (m)')
     plt.ylabel('Time (yrs)')
     if save:
-        plt.savefig('../../'+model+'/stitched/delin_'+flow+'.pdf',dpi=400)
+        plt.savefig(stitchpath+'delin_'+flow+'.pdf',dpi=400)
     
     if save:
-        os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+model)
-        if not os.path.exists('stitched'): 
-            os.makedirs('stitched')   
-        if os.path.isfile('stitched/'+flow+'.pkl'):
+        if os.path.isfile(stitchpath+flow+'.pkl'):
             print(flow+' flow alreay pickled')
         else:
-            ptg.save_obj(stitch,'stitched/'+flow+'.pkl')  
-        if os.path.isfile('stitched/alltime.pkl'):
+            ptg.save_obj(stitch,stitchpath+flow+'.pkl')  
+        if os.path.isfile(stitchpath+'alltime.pkl'):
             print('time alreay pickled')
         else:
-            ptg.save_obj(ts,'stitched/alltime.pkl')
-        if os.path.isfile('stitched/ptbtime.pkl'):
+            ptg.save_obj(ts,stitchpath+'alltime.pkl')
+        if os.path.isfile(stitchpath+'ptbtime.pkl'):
             print('time alreay pickled')
         else:
-            ptg.save_obj(ts,'stitched/ptbtime.pkl')
+            ptg.save_obj(ts,stitchpath+'ptbtime.pkl')
 
         
 t1=time.clock()        

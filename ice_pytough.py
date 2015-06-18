@@ -56,14 +56,21 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
             if blk.centre[0] <= glacier_limit: 
                 initT=Tmin # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
             else:
-                initT = 25.8 - (hmax*(5.4/1000)) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
+                initT = 25.8 - (hmax*(5.4/1000.)) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
                 if initT <= Tmin: initT=Tmin
+            if (hpregion is not None and 'hp   ' in grid.rocktype.keys() and
+                blk.centre[2] > hpregion[0][2] and 
+                blk.centre[2] <= hpregion[1][2] and 
+                blk.centre[0] > hpregion[0][0] and 
+                blk.centre[0] <= hpregion[1][0]): #if in hp region
+                rocktype='hp   ' # this allows a different pmx for atmos above highperm
             initSG=1.0 # initial gas saturation
             infvol=False # already given 1e50 volume
             pmx=grid.rocktype[rocktype].permeability[0]
+            rocktype='top  ' # resets to rocktype "top  "
         else:
             rocktype = 'main '
-            initP=5e4+(997.0479*9.81*abs(hmax-blk.centre[2]))
+            initP=5.0e4+(997.0479*9.81*abs(hmax-blk.centre[2]))
             initSG=0.0
             initT=15.0+((np.abs(hmax-blk.centre[2])/100.0)*3.0)
             infvol=False

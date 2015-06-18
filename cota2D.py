@@ -21,17 +21,18 @@ import pytoughgrav as ptg
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150614_1'
+mod='Cota20150617_1'
 if not os.path.exists(mod):
     os.makedirs(mod)
 #%%
+yrsec=3600*365.25*24
 origin=[0,0,6000] # position of first cell in space
 width=1.0
-zcells=[10]*100+[50]*10+[100]*15    #+[100]*6+[50]*10+[10]*20    
+zcells=[10]*130+[50]*4+[100]*15    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
 xcells=[10]*250+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 
-surf=ptg.topsurf('dev_files/Topography_crater.txt',delim='\t',headerlines=1,width=width)
+surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
 
 geo=ipt.icegeo( mod, width=width, celldim=10., origin=origin,
               zcells=zcells, xcells=xcells, surface=surf, atmos_type=1, min_thick=5.0)
@@ -115,7 +116,7 @@ top.capillarity=nocp
 top.specific_heat=1000.0
 rtypes=rtypes+[top]
 
-hp=rocktype('hp   ', nad=3, permeability = [perm]*2+[perm*100.],
+hp=rocktype('hp   ', nad=3, permeability = [perm*20.]*2+[perm*20.],
 porosity=poro) 
 hp.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
 hp.tortuosity=0.0
@@ -155,12 +156,14 @@ ptg.makeradial(geo,grid,width=width)
 
 # additional output parameters 
 dat.parameter['max_timestep']=3.0e10 # maximum timstep length
-dat.parameter['print_interval']=50 # print (output) frequency to flow.out
-dat.parameter['timestep']=[1000.0] # initial timestep?
-dat.output_times['time']=[1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
+dat.parameter['print_interval']=1000 # print (output) frequency to flow.out
+dat.parameter['timestep']=[1.0]#[1.0,1000.0] # initial timestep?
+dat.output_times['time']=[1.0,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=len(dat.output_times['time'])
-#
+#dat.parameter['tstop']=1E3*yrsec
+dat.output_times['num_times']=20
+dat.output_times['time_increment']= 1000*yrsec
 #
 dat.clear_generators()
 ipt.heatgen(mod,geo,dat,grid,heat_flux)
