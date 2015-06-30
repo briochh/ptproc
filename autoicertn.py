@@ -58,14 +58,18 @@ dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=150
 dat.output_times['time_increment']= 100*yrsec
 
-for col in geo.columnlist[:]:
-#        if col not in ecol:
-    lay=geo.layerlist[-1] # bottom layer
-    blkname=geo.block_name(lay.name,col.name) # get block name for the bottom layer of this column
-    x=grid.block[blkname].centre[0]
-    if x <= 500:
+heatsource=[[0,0,3000],[500,0,3500]]
+for blk in grid.blocklist[0:]:
+    lay=geo.layer[geo.layer_name(str(blk))] # layer containing current block
+    col=geo.column[geo.column_name(str(blk))] # column containing current block
+    blkname=blk.name #geo.block_name(lay.name,col.name) # get block name for the bottom layer of this column
+    if (heatsource is not None and 
+        blk.centre[2] > heatsource[0][2] and 
+        blk.centre[2] <= heatsource[1][2] and 
+        blk.centre[0] > heatsource[0][0] and 
+        blk.centre[0] <= heatsource[1][0]): # if in heatsource region
         print blkname
-        grid.block[blkname].volume=grid.block[blkname].volume/1E50
+        blk.volume=blk.volume/1E50
 
 geo.write(mod + '/grd.dat')
 grid.write_vtk(geo,mod+'/'+mod+'_initial.vtk') 

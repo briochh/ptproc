@@ -33,7 +33,7 @@ def icegeo( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
               zcells=zcells, xcells=xcells, surface=surface, atmos_type=atmos_type, min_thick=min_thick)
     return geo
 
-def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004, glacier_limit=2500.):
+def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004, glacier_limit=2500., infax=False):
     """
     Method for defining ice grid. Varies slightly from ptg method.
     """
@@ -52,7 +52,7 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
         if blk in atmos:
             rocktype='top  ' # assign rocktype "top  "
             initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)  # initial presure condition - MAY NOT BE APPROPRIATE - WHAT IS THE PRESSURE UNDER THICK GLACIER AT 5000 m amsl??         
-            Tmin=2      
+            Tmin=2.      
             if blk.centre[0] <= glacier_limit: 
                 initT=Tmin # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
             else:
@@ -64,7 +64,7 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
                 blk.centre[0] > hpregion[0][0] and 
                 blk.centre[0] <= hpregion[1][0]): #if in hp region
                 rocktype='hp   ' # this allows a different pmx for atmos above highperm
-            initSG=1.0 # initial gas saturation
+            initSG=0.999 # initial gas saturation
             infvol=False # already given 1e50 volume
             pmx=grid.rocktype[rocktype].permeability[0]
             rocktype='top  ' # resets to rocktype "top  "
@@ -72,7 +72,7 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
             rocktype = 'main '
             initP=5.0e4+(997.0479*9.81*abs(hmax-blk.centre[2]))
             initSG=0.0
-            initT=15.0+((np.abs(hmax-blk.centre[2])/100.0)*3.0)
+            initT=Tmin+((np.abs(hmax-blk.centre[2])/100.0)*3.0)
             infvol=False
             if lay==geo.layerlist[-1]:
                 rocktype='sourc'
@@ -97,6 +97,11 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
                 initT=350
                 infvol=True
                 blk.hotcell=True
+            if infax is True and col is geo.columnlist[5] and lay == tlay:
+                print "inf vol top axis cell " + blk.name
+                infvol=True
+                initSG=10.9999
+                rocktype='bound'
             pmx=pmxcalc(blk,grid,hmax,rocktype,0.004,800.)      
         ptg.rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,infvol=infvol)
     return grid
@@ -112,16 +117,36 @@ def pmxcalc(blk,grid,hmax,rock,Saar_lam=0.004,switch_depth=None):
         pmx=grid.rocktype[rock].permeability[0]*np.exp(-Saar_lam*depth)
     return pmx        
 
-def heatgen(mod,geo,dat,grid,heat_flux):
-    f = open(mod+'/genertot.txt','w')
+def heatgen(mod,geo,dat,grid,heat_flux,function=None):
+    f = open(mod+'/Heat_genertot.txt','w')
     f.write('Model = '+mod+'\n')
     allgens=[]
     cols=[col for col in geo.columnlist]
-    f.write('Constant generation ='+str(heat_flux)+' J/s/m2\n')
+    if function is not None:
+        func=function['type']
+        if func=='exp':
+            p1=function['points'][0]
+            p2=function['points'][1]
+            b=spy.log(p1[1]/p2[1])/(p1[0]-p2[0])
+            a=p1[1]/spy.e**(p1[0]*b)
+            f.write('exponential spatial generation Q=ae^bx '+str(a)+'e^('+str(b)+'x) J/s/m2\n')
+        elif func=='log':
+            p1=np.array(function['points'][0])
+            p2=np.array(function['points'][1])
+            a=(p1[1]-p2[1])/(spy.log(p1[0]/p2[0]))            
+            b=spy.e**((p2[1]*spy.log(p1[0])-p1[1]*spy.log(p2[0]))/(p1[1]-p2[1]))
+            f.write('logarithmic spatial generation Q=a*ln(bx) '+str(a)+'ln('+str(b)+'x) J/s/m2\n')
+    else: 
+        func='Constant'
+        f.write('Constant generation ='+str(heat_flux)+' J/s/m2\n')
     for col in cols:
         lay=geo.layerlist[-1] # bottom layer
         blkname=geo.block_name(lay.name,col.name) # get block name for the bottom layer of this column
         if grid.block[blkname].hotcell is not True:
+            if func=='exp':            
+                heat_flux=a*spy.e**(b*grid.block[blkname].centre[0])
+            elif func=='log':
+                heat_flux=a*spy.log(b*grid.block[blkname].centre[0])
             gxa=col.area*heat_flux
             gen=t2generator(name=' H'+col.name,block=blkname,type='HEAT',gx=gxa) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
             dat.add_generator(gen) # add generater to TOUGH2 input
@@ -287,12 +312,10 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         if save:
             plt.savefig('results/'+mod+'_'+flow+'_.pdf',dpi=400)
         
-        qout=np.copy(qts.T)
-        qout[qout<0]=0
-        qin=np.copy(qts.T)
-        qin[qin>0]=0
-        delqout=np.array([tstep-qout[0] for tstep in qout]) # kg/s/m2 ~ mm/s
-        delqin=np.array([qin[0]-tstep for tstep in qin])    
+        qout=np.ma.masked_array(qts,[qts<0]) # mask where flow is negative (i.e. in to the model)
+        qin=np.ma.masked_array(qts,[qts>0]) # mask where flow is positive (i.e. out of the model)
+        delqout=np.array([tstep-qts.T[0] for tstep in qout.T]) # kg/s/m2 ~ mm/s
+        delqin=np.array([qts.T[0]-tstep for tstep in qin.T])    
         
         plt.figure()
         plt.pcolormesh(X,tscale,delqout, rasterized=True,cmap='rainbow') #W or (ks/s) /m2

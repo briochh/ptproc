@@ -58,18 +58,22 @@ dat.parameter['max_timestep']=10*yrsec # maximum timstep length
 dat.parameter['print_interval']=50 # print (output) frequency to flow.out
 dat.parameter['tstop']=1E3*yrsec
 
+heatsource=[[0,0,3000],[500,0,3500]]
 
-for col in geo.columnlist[:]:
-#        if col not in ecol:
-    lay=geo.layerlist[-1] # bottom layer
-    blkname=geo.block_name(lay.name,col.name) # get block name for the bottom layer of this column
-    x=grid.block[blkname].centre[0]
-    if x <= 500:
+for blk in grid.blocklist[0:]:
+    lay=geo.layer[geo.layer_name(str(blk))] # layer containing current block
+    col=geo.column[geo.column_name(str(blk))] # column containing current block
+    blkname=blk.name #geo.block_name(lay.name,col.name) # get block name for the bottom layer of this column
+    if (heatsource is not None and 
+        blk.centre[2] > heatsource[0][2] and 
+        blk.centre[2] <= heatsource[1][2] and 
+        blk.centre[0] > heatsource[0][0] and 
+        blk.centre[0] <= heatsource[1][0]): # if in heatsource region
         cond=inc[blkname]
         print blkname
         initT=350
         cond.variable[2]=initT
-        grid.block[blkname].volume=grid.block[blkname].volume*1E50
+        blk.volume=blk.volume*1E50
 
 geo.write(mod + '/grd.dat')
 grid.write_vtk(geo,mod+'/'+mod+'_initial.vtk') 

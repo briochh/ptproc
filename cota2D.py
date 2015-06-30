@@ -21,28 +21,28 @@ import pytoughgrav as ptg
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150617_1'
+mod='Cota20150630_1'
 if not os.path.exists(mod):
     os.makedirs(mod)
 #%%
 yrsec=3600*365.25*24
 origin=[0,0,6000] # position of first cell in space
 width=1.0
-zcells=[10]*130+[50]*4+[100]*15    #+[100]*6+[50]*10+[10]*20    
+zcells=[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*4+[100]*15    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
-xcells=[10]*250+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
+xcells=[5]*12+[10]*254+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 
 surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
 
 geo=ipt.icegeo( mod, width=width, celldim=10., origin=origin,
-              zcells=zcells, xcells=xcells, surface=surf, atmos_type=1, min_thick=5.0)
+              zcells=zcells, xcells=xcells, surface=surf, atmos_type=1, min_thick=2.0)
 
 #%%
 dat=t2data('dev_files/initialflow2.inp') # read from template file 
 dat.parameter['print_block']=' w 46' # define element to print in output - useful for loggin progress of TOUGH sim 
 dat.multi['num_equations']=3 # 3 defines non isothermal simulation
 
-perm=1.0e-14 # define permeability
+perm=1.0e-13 # define permeability
 poro=0.1  # define porosity
 rp={'type':11, 'parameters':[0.1,0.0,0.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
 norp={'type':5, 'parameters':[]} # no rel perm option
@@ -50,7 +50,7 @@ cp={'type':11, 'parameters':[0.0,-5000.0,0.001618,0.85,None,None,0.1]} # capilla
 nocp={'type':1, 'parameters':[0.0,0.0,1.0]} # no cp option
 
 conds=4.0
-heat_flux=0.24
+heat_flux=0.5 #0.24
 
 # MAKE TOUGH GRID 
 
@@ -116,7 +116,7 @@ top.capillarity=nocp
 top.specific_heat=1000.0
 rtypes=rtypes+[top]
 
-hp=rocktype('hp   ', nad=3, permeability = [perm*20.]*2+[perm*20.],
+hp=rocktype('hp   ', nad=3, permeability = [perm*10]*2+[perm*10.],
 porosity=poro) 
 hp.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
 hp.tortuosity=0.0
@@ -145,7 +145,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,hpregion=[[0,0,3000],[250,0,6000]])#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False)#, hpregion=[[0,0,3000],[250,0,6000]])#,heatsource=[[0,0,3000],[1500,0,3050]])
 ptg.makeradial(geo,grid,width=width)
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
@@ -166,8 +166,8 @@ dat.output_times['num_times']=20
 dat.output_times['time_increment']= 1000*yrsec
 #
 dat.clear_generators()
-ipt.heatgen(mod,geo,dat,grid,heat_flux)
-ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy=844.)
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[1,2.5],[10000,0.24]]})
+ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   
 # Add data stored in grid object to pyTOUGH dat object - this is what gets turned into the TOUGH input file        

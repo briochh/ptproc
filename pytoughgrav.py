@@ -15,7 +15,10 @@ from t2data import * # import classes and routines for creating TOUGH2 files
 from t2incons import *
 from t2listing import *
 import matplotlib as mpl
-mpl.use('Agg')
+import sys
+if sys.platform == 'linux2':
+    mpl.use('Agg')
+else: mpl.use('QT4Agg')
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 #import matplotlib.mlab as ml
