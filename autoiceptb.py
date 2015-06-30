@@ -24,9 +24,14 @@ plt.close('all')
 parser = argparse.ArgumentParser(description='Prepare perturbation model')
 parser.add_argument('-b','--base', help='basemodel name',required=True)
 parser.add_argument('-l','--location', help='location',required=False, default='.')
+parser.add_argument('-heat','--heatsource',help='heat source region for ptb',required=False, default=[[0,0,3000],[500,0,3050]])
+#parser.add_argument('-fr','--fluidsource',help='mass source injection?',required=False, default=False)
+#parser.add_argument('-fr','--fluidsource',help='mass source injection?',required=False, default=False)
+
+
 
 args = parser.parse_args()
-
+heatsource=args.heatsource
 os.chdir(args.location)
 
 
@@ -58,7 +63,6 @@ dat.parameter['max_timestep']=10*yrsec # maximum timstep length
 dat.parameter['print_interval']=50 # print (output) frequency to flow.out
 dat.parameter['tstop']=1E3*yrsec
 
-heatsource=[[0,0,3000],[500,0,3500]]
 
 for blk in grid.blocklist[0:]:
     lay=geo.layer[geo.layer_name(str(blk))] # layer containing current block
@@ -73,6 +77,7 @@ for blk in grid.blocklist[0:]:
         print blkname
         initT=350
         cond.variable[2]=initT
+        cond.variable[3]=0.0 # zeros gas satuartation
         blk.volume=blk.volume*1E50
 
 geo.write(mod + '/grd.dat')

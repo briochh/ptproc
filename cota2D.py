@@ -21,7 +21,7 @@ import pytoughgrav as ptg
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150630_1'
+mod='Cota20150630_2'
 if not os.path.exists(mod):
     os.makedirs(mod)
 #%%
@@ -116,7 +116,7 @@ top.capillarity=nocp
 top.specific_heat=1000.0
 rtypes=rtypes+[top]
 
-hp=rocktype('hp   ', nad=3, permeability = [perm*10]*2+[perm*10.],
+hp=rocktype('hp   ', nad=3, permeability = [perm*10.]*2+[perm*10.],
 porosity=poro) 
 hp.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
 hp.tortuosity=0.0
@@ -145,7 +145,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False)#, hpregion=[[0,0,3000],[250,0,6000]])#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False, hpregion=[[0,0,3000],[250,0,6000]])#,heatsource=[[0,0,3000],[1500,0,3050]])
 ptg.makeradial(geo,grid,width=width)
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       

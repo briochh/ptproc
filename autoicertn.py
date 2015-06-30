@@ -25,9 +25,10 @@ plt.close('all')
 parser = argparse.ArgumentParser(description='Prepare perturbation model')
 parser.add_argument('-b','--base', help='basemodel name',required=True)
 parser.add_argument('-l','--location', help='location',required=False, default='.')
+parser.add_argument('-heat','--heatsource',help='heat source region for ptb',required=False, default=[[0,0,3000],[500,0,3050]])
 
 args = parser.parse_args()
-
+heatsource=args.heatsource
 os.chdir(args.location)
 
 basemod=args.base+'_ptb'
@@ -58,7 +59,6 @@ dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=150
 dat.output_times['time_increment']= 100*yrsec
 
-heatsource=[[0,0,3000],[500,0,3500]]
 for blk in grid.blocklist[0:]:
     lay=geo.layer[geo.layer_name(str(blk))] # layer containing current block
     col=geo.column[geo.column_name(str(blk))] # column containing current block
