@@ -21,7 +21,8 @@ import pytoughgrav as ptg
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150630_2'
+mod='Cota20150630_4'
+print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
 #%%
@@ -42,7 +43,7 @@ dat=t2data('dev_files/initialflow2.inp') # read from template file
 dat.parameter['print_block']=' w 46' # define element to print in output - useful for loggin progress of TOUGH sim 
 dat.multi['num_equations']=3 # 3 defines non isothermal simulation
 
-perm=1.0e-13 # define permeability
+perm=5.0e-13 # define permeability
 poro=0.1  # define porosity
 rp={'type':11, 'parameters':[0.1,0.0,0.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
 norp={'type':5, 'parameters':[]} # no rel perm option
@@ -145,7 +146,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False, hpregion=[[0,0,3000],[250,0,6000]])#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False)#, hpregion=[[0,0,3000],[250,0,6000]])#,heatsource=[[0,0,3000],[1500,0,3050]])
 ptg.makeradial(geo,grid,width=width)
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       

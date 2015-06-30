@@ -25,10 +25,18 @@ plt.close('all')
 parser = argparse.ArgumentParser(description='Prepare perturbation model')
 parser.add_argument('-b','--base', help='basemodel name',required=True)
 parser.add_argument('-l','--location', help='location',required=False, default='.')
-parser.add_argument('-heat','--heatsource',help='heat source region for ptb',required=False, default=[[0,0,3000],[500,0,3050]])
+parser.add_argument('-heat','--heatsource',help='heat source region for ptb',  nargs='+', type=int, required=False)
+#parser.add_argument('-fr','--fluidsource',help='mass source injection?',required=False, default=False)
+#parser.add_argument('-fr','--fluidsource',help='mass source injection?',required=False, default=False)
+
+
 
 args = parser.parse_args()
-heatsource=args.heatsource
+if args.heatsource is None:
+    heatsource=[[0,0,3000],[500,0,3050]]
+else:
+    heatsource=[[args.heatsource[0],args.heatsource[1],args.heatsource[2]],[args.heatsource[3],args.heatsource[4],args.heatsource[5]]]
+print heatsource
 os.chdir(args.location)
 
 basemod=args.base+'_ptb'
