@@ -20,7 +20,7 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Cota20150629_3'
+model='Boiltest_20150703_1'
 yrsec=365.25*24*3600
 models=[model,model+'_ptb',model+'_rtn']
 times={}

@@ -58,19 +58,20 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
             else:
                 initT = 25.8 - (hmax*(5.4/1000.)) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
                 if initT <= Tmin: initT=Tmin
-            if (hpregion is not None and 'hp   ' in grid.rocktype.keys() and
-                blk.centre[2] > hpregion[0][2] and 
-                blk.centre[2] <= hpregion[1][2] and 
-                blk.centre[0] > hpregion[0][0] and 
-                blk.centre[0] <= hpregion[1][0]): #if in hp region
-                rocktype='hp   ' # this allows a different pmx for atmos above highperm
+            if (hpregion is not None and 'hp   ' in grid.rocktype.keys()):
+                for hpr in hpregion.values():
+                    if (blk.centre[2] > hpr[0][2] and 
+                    blk.centre[2] <= hpr[1][2] and 
+                    blk.centre[0] > hpr[0][0] and 
+                    blk.centre[0] <= hpr[1][0]): #if in hp region
+                        rocktype='hp   ' # this allows a different pmx for atmos above highperm
             initSG=0.999 # initial gas saturation
             infvol=False # already given 1e50 volume
             pmx=grid.rocktype[rocktype].permeability[0]
             rocktype='top  ' # resets to rocktype "top  "
         else:
             rocktype = 'main '
-            initP=5.0e4+(997.0479*9.81*abs(hmax-blk.centre[2]))
+            initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(997.0479*9.81*abs(hmax-blk.centre[2]))
             initSG=0.0
             initT=Tmin+((np.abs(hmax-blk.centre[2])/100.0)*3.0)
             infvol=False
@@ -82,12 +83,13 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
                 blk.centre[0] > lpregion[0][0] and 
                 blk.centre[0] <= lpregion[1][0]): # if in lp region
                 rocktype='lp   '     
-            if (hpregion is not None and 'hp   ' in grid.rocktype.keys() and
-                blk.centre[2] > hpregion[0][2] and 
-                blk.centre[2] <= hpregion[1][2] and 
-                blk.centre[0] > hpregion[0][0] and 
-                blk.centre[0] <= hpregion[1][0]): #if in hp region
-                rocktype='hp   '
+            if (hpregion is not None and 'hp   ' in grid.rocktype.keys()):
+                for hpr in hpregion.values():
+                    if (blk.centre[2] > hpr[0][2] and 
+                    blk.centre[2] <= hpr[1][2] and 
+                    blk.centre[0] > hpr[0][0] and 
+                    blk.centre[0] <= hpr[1][0]): #if in hp region
+                        rocktype='hp   '
             if (heatsource is not None and 
                 blk.centre[2] > heatsource[0][2] and 
                 blk.centre[2] <= heatsource[1][2] and 

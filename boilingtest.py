@@ -17,26 +17,109 @@ from t2data import *
 import time 
 import shutil
 import pytoughgrav as ptg
+import scipy as spy
+
+def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004, glacier_limit=2500., infax=False):
+    """
+    Method for defining ice grid. Varies slightly from ptg method.
+    """
+    grid = t2grid().fromgeo(geo)
+    atmos=grid.atmosphere_blocks   
+    # loop over list of rocktypes and add to pytough gird object
+    for rock in rocks:
+        grid.add_rocktype(rock) 
+    # loop over every element block in the grid
+    for blk in grid.blocklist[0:]:
+        blk.hotcell=False
+        lay=geo.layer[geo.layer_name(str(blk))] # layer containing current block
+        col=geo.column[geo.column_name(str(blk))] # column containing current block
+        tlay=geo.column_surface_layer(col)    
+        hmax=geo.block_surface(tlay,col)
+        if blk in atmos:
+            rocktype='top  ' # assign rocktype "top  "
+            initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)  # initial presure condition - MAY NOT BE APPROPRIATE - WHAT IS THE PRESSURE UNDER THICK GLACIER AT 5000 m amsl??         
+            Tmin=2.      
+            if blk.centre[0] <= glacier_limit: 
+                initT=Tmin # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
+            else:
+                initT = 25.8 - (hmax*(5.4/1000.)) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
+                if initT <= Tmin: initT=Tmin
+            if (hpregion is not None and 'hp   ' in grid.rocktype.keys()):
+                for hpr in hpregion.values():
+                    if (blk.centre[2] > hpr[0][2] and 
+                    blk.centre[2] <= hpr[1][2] and 
+                    blk.centre[0] > hpr[0][0] and 
+                    blk.centre[0] <= hpr[1][0]): #if in hp region
+                        rocktype='hp   ' # this allows a different pmx for atmos above highperm
+            initSG=0.999 # initial gas saturation
+            infvol=False # already given 1e50 volume
+            pmx=grid.rocktype[rocktype].permeability[0]
+            rocktype='top  ' # resets to rocktype "top  "
+        else:
+            rocktype = 'main '
+            initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(997.0479*9.81*abs(hmax-blk.centre[2]))
+            initSG=0.0
+            initT=Tmin+((np.abs(hmax-blk.centre[2])/100.0)*3.0)
+            infvol=False
+            if lay==geo.layerlist[-1]:
+                rocktype='sourc'
+            if (lpregion is not None and 'lp   ' in grid.rocktype.keys() and
+                blk.centre[2] > lpregion[0][2] and 
+                blk.centre[2] <= lpregion[1][2] and 
+                blk.centre[0] > lpregion[0][0] and 
+                blk.centre[0] <= lpregion[1][0]): # if in lp region
+                rocktype='lp   '     
+            if (hpregion is not None and 'hp   ' in grid.rocktype.keys()):
+                for hpr in hpregion.values():
+                    if (blk.centre[2] > hpr[0][2] and 
+                    blk.centre[2] <= hpr[1][2] and 
+                    blk.centre[0] > hpr[0][0] and 
+                    blk.centre[0] <= hpr[1][0]): #if in hp region
+                        rocktype='hp   '
+            if (heatsource is not None and 
+                blk.centre[2] > heatsource[0][2] and 
+                blk.centre[2] <= heatsource[1][2] and 
+                blk.centre[0] > heatsource[0][0] and 
+                blk.centre[0] <= heatsource[1][0]): # if in heatsource region
+                rocktype='hotcl'
+                initT=350
+                infvol=True
+                blk.hotcell=True
+            if infax is True and col is geo.columnlist[5] and lay == tlay:
+                print "inf vol top axis cell " + blk.name
+                infvol=True
+                initSG=10.9999
+                rocktype='bound'
+            if col in ecol:
+                rocktype='bound'
+                infvol=True
+                initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(997.0479*9.81*abs(satelev-blk.centre[2]))
+                if blk.centre[2]>satelev:
+                    initSG=0.999
+                    initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)
+            pmx=ipt.pmxcalc(blk,grid,hmax,rocktype,0.004,800.)      
+        ptg.rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,infvol=infvol)
+    return grid
 
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150706_1'
+mod='Boiltest_20150706_1'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
 #%%
 yrsec=3600*365.25*24
-origin=[0,0,6000] # position of first cell in space
+origin=[0,0,2000] # position of first cell in space
 width=1.0
-zcells=[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*4+[100]*10+[50]*6+[25]*6+[10]*5    #+[100]*6+[50]*10+[10]*20    
+zcells=[10]*30+[50]*4+[100]*10+[50]*6+[25]*6+[10]*5    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
-xcells=[5]*12+[10]*254+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
+xcells=[5]*12+[10]*54  #+[100]*6+[50]*10+[10]*20
 
-surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
+#surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
 
 geo=ipt.icegeo( mod, width=width, celldim=10., origin=origin,
-              zcells=zcells, xcells=xcells, surface=surf, atmos_type=1, min_thick=2.0)
+              zcells=zcells, xcells=xcells, atmos_type=1, min_thick=2.0)
 
 #%%
 dat=t2data('dev_files/initialflow2.inp') # read from template file 
@@ -146,7 +229,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False)#, hpregion={'hpr1':[[0,0,3000],[50,0,6000]],'hpr2':[[200,0,3000],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=icegrid(geo,dat,rtypes,ecol,satelev=1800.)#, hpregion={'hpr1':[[0,0,3000],[50,0,6000]],'hpr2':[[200,0,3000],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 ptg.makeradial(geo,grid,width=width)
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
