@@ -57,7 +57,7 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
             rocktype='top  ' # resets to rocktype "top  "
         else:
             rocktype = 'main '
-            initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(997.0479*9.81*abs(hmax-blk.centre[2]))
+            initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(765.*9.81*abs(hmax-blk.centre[2]))
             initSG=0.0
             initT=Tmin+((np.abs(hmax-blk.centre[2])/100.0)*3.0)
             infvol=False
@@ -93,7 +93,7 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
             if col in ecol:
                 rocktype='bound'
                 infvol=True
-                initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(997.0479*9.81*abs(satelev-blk.centre[2]))
+                initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(767.*9.81*abs(satelev-blk.centre[2]))
                 if blk.centre[2]>satelev:
                     initSG=0.999
                     initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)
@@ -104,13 +104,13 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Boiltest_20150706_1'
+mod='Boiltest_20150706_3'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
 #%%
 yrsec=3600*365.25*24
-origin=[0,0,2000] # position of first cell in space
+origin=[0,0,5500] # position of first cell in space
 width=1.0
 zcells=[10]*30+[50]*4+[100]*10+[50]*6+[25]*6+[10]*5    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
@@ -176,8 +176,8 @@ source=rocktype('sourc', nad=3, permeability = [perm]*2+[perm],
 porosity=poro)
 source.conductivity=4 
 source.tortuosity=0.0
-source.relative_permeability=norp
-source.capillarity=nocp
+source.relative_permeability=rp
+source.capillarity=cp
 source.specific_heat=1000.0
 rtypes=rtypes+[source]
 
@@ -229,7 +229,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=icegrid(geo,dat,rtypes,ecol,satelev=1800.)#, hpregion={'hpr1':[[0,0,3000],[50,0,6000]],'hpr2':[[200,0,3000],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=icegrid(geo,dat,rtypes,ecol,satelev=5300.)#, hpregion={'hpr1':[[0,0,3000],[50,0,6000]],'hpr2':[[200,0,3000],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 ptg.makeradial(geo,grid,width=width)
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       

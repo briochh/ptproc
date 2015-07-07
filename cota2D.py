@@ -93,8 +93,8 @@ source=rocktype('sourc', nad=3, permeability = [perm]*2+[perm],
 porosity=poro)
 source.conductivity=4 
 source.tortuosity=0.0
-source.relative_permeability=norp
-source.capillarity=nocp
+source.relative_permeability=rp
+source.capillarity=cp
 source.specific_heat=1000.0
 rtypes=rtypes+[source]
 
