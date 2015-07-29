@@ -35,6 +35,8 @@ import copy
 import numpy.ma as ma
 import cPickle as pickle
 import random
+from scipy import interpolate
+
 
 mpl.rcParams['xtick.labelsize']=14
 
@@ -316,21 +318,34 @@ def grid2D(modelname,geo,dat,rocks,boundcol,lpregion=[[0,0,0],[0,0,0]],satelev=0
             rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx)
     return grid
         
-def rockandincon(blk,grid,dat,rocktype,P,SG,T,pmx,infvol=False):   
+def rockandincon(blk,grid,dat,rocktype,P,SG,T,pmx,eos=3,infvol=False):   
     if rocktype is not None:
         blk.rocktype=grid.rocktype[rocktype]
-    dat.incon[str(blk)]=[None,[P,SG,T]]
+    if eos==1:
+        dat.incon[str(blk)]=[None,[P,T]]
+    elif eos==3:
+        dat.incon[str(blk)]=[None,[P,SG,T]]
     if pmx is not None:
         grid.block[(str(blk))].pmx=pmx
     if infvol:
         grid.block[str(blk)].volume=grid.block[str(blk)].volume*1E50 # more robust later on as we retain somthing of orginal volume
 #       grid.block[str(blk)].volume=1E50 
         
-def topsurf(surfpath,delim='\t',headerlines=1,width=10):
+def topsurf(surfpath,delim='\t',headerlines=1,width=10,ds=False):
     """ reads and reshapes surface profile for use in 2D model """
     ## top surface
     surf = np.loadtxt(surfpath,delimiter=delim,skiprows=headerlines)
     #np.loadtxt(r'C:\Users\glbjch\Local Documents\Work\Modelling\Pytough\2Ddev\2dprof.txt', delimiter='\t', skiprows=1) # load surface file
+    if ds:
+        x=surf[:,0]
+        z=surf[:,1]
+        s=interpolate.UnivariateSpline(x,z,k=3,s=0)
+        xnew=np.linspace(min(x),max(x),10)
+        znew=s(xnew)
+        plt.figure()
+        plt.plot(x,z,xnew,znew)
+        surf=np.vstack((xnew,znew)).T
+    
     halfwidth=width/2.0
     neghalf=-halfwidth
     
@@ -340,6 +355,7 @@ def topsurf(surfpath,delim='\t',headerlines=1,width=10):
     np.hsplit(surf,2)[0],minw,np.hsplit(surf,2)[1]),axis=1)),
     (np.concatenate((np.hsplit(surf,2)[0],maxw,np.hsplit(surf,2)[1]),axis=1))),
     axis=0)
+
     return surf
 def makeradial(geo,grid,width=1.):
     """turn 2D grid into radial grid about x=0"""

@@ -19,14 +19,14 @@ import ice_pytough as ipt
 t0=tinit=time.clock()
 plt.close('all')
 
-bmod='Cota20150619_1/Cota20150619_1_ptb/'
-mod='Cota20150619_1_rtn' # define model name
+bmod=''#'Cota20150619_1/Cota20150619_1_ptb/'
+mod='Cota20150729_2' # define model name
 read=True ########### I N P U T #########################
 readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
 readdat=True ########### I N P U T #########################
 dat_fname='flow2.inp'
-readresults=False ########### I N P U T #########################
+readresults=True ########### I N P U T #########################
 results_fname='flow2.out'
 readflow=True ########### I N P U T #########################
 #flowH_fname='results/FLOH.pkl'
@@ -34,8 +34,8 @@ readflow=True ########### I N P U T #########################
 #flowF_fname='results/FLOLIQ.pkl'
 
 save=True ########### I N P U T #########################
-savevtk=False ########### I N P U T #########################
-flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
+savevtk=True ########### I N P U T #########################
+flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+bmod+mod)    
@@ -56,6 +56,7 @@ if read:
     if readflow is True:
         if os.path.isfile('results/time.pkl'):
             times=ptg.load_obj('results/time.pkl')
+        else: times={}
         for flow in flows.keys():
             flow_fname='results/'+flow+'.pkl'
             if os.path.isfile(flow_fname):
@@ -72,5 +73,5 @@ if read:
 t1=time.clock()        
 print 'time to read=',(t1-t0)  
       
-ipt.icepost(mod, geom_data=geo,tough2_input=dat, results=None, times=times, save=save, savevtk=savevtk,flows=flows)
+ipt.icepost(mod, geom_data=geo,tough2_input=dat, results=results, times=times, save=save, savevtk=savevtk,flows=flows)
 print 'time to run =', time.clock()-tinit

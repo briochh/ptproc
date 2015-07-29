@@ -1,64 +1,86 @@
-
-
-
-
-
-
+# -*- coding: utf-8 -*-
 """
-Created on Mon Mar  9 14:21:33 2015
-
-@author: molly
+Created on Fri Jul 24 18:15:22 2015
+Script for pulling out water table model from a completed unsaturated zone model.
+@author: glbjch
 """
 
-import ice_pytough as ipt
-import os
-from t2grids import *
 from t2data import *
-import time 
-import shutil
+from t2grids import *
+from t2listing import *
+import os
 import pytoughgrav as ptg
+import matplotlib.pyplot as plt
+import numpy as np
+import time
+import ice_pytough as ipt
+import shutil
+from scipy import interpolate
 
-#%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-t0=time.clock()
+#%% set up
+t0=tinit=time.clock()
+plt.close('all')
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150727_2_rech'
+
+basemod='Cota20150727_2_rech' # define model name
+mod='Cota20150729_2'
+
+basegeo,basegrid,basedat,results=ipt.simple_readres(basemod,savevtk=True)
+ipt.makewt(basemod,basegeo,basegrid,basedat,results)
+
+yrsec=3600*365.25*24
+width=1.0
+surf=ptg.topsurf(basemod+'/surface.txt',delim='\t',headerlines=1,width=width,ds=True)
+
+maxel=np.max(surf[:,2])
+surfrange=np.max(surf[:,2])-np.min(surf[:,2])
+origin=[0,0,np.ceil(maxel/100)*100] # position of first cell in space
+top2bottom=origin[2]-3000.0
+surfz=[10]*np.ceil(surfrange/100)*10
+left=top2bottom-np.sum(surfz)-100.0
+zcells=surfz+[25]*np.int(left/25.)+[10]*9+[5]*2
+dy=1 # size of cell in y direction
+xcells=[5]*12+[10]*254+[25]*20+[50]*17+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
+
+
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
-#%%
-yrsec=3600*365.25*24
-origin=[0,0,6000] # position of first cell in space
-width=1.0
-zcells=[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*30+[25]*6+[10]*5    #+[100]*6+[50]*10+[10]*20    
-dy=1 # size of cell in y direction
-xcells=[5]*12+[10]*254+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
-
-surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
 
 geo=ipt.icegeo( mod, width=width, celldim=10., origin=origin,
               zcells=zcells, xcells=xcells, surface=surf, atmos_type=1, min_thick=2.0)
 
-#%%
+
+topsurf=np.loadtxt('dev_files/Topography_crater_f.txt',delimiter='\t',skiprows=1)
+x=topsurf[:,0]
+z=topsurf[:,1]
+s=interpolate.UnivariateSpline(x,z,k=1,s=0)
+xnew=[col.centre[0] for col in geo.columnlist]
+znew=s(xnew)
+plt.figure()
+plt.plot(x,z,xnew,znew)
+topsurf=np.vstack((xnew,znew)).T
+
 dat=t2data('dev_files/initialflow2.inp') # read from template file 
 dat.parameter['print_block']=' w 46' # define element to print in output - useful for loggin progress of TOUGH sim 
-dat.multi['num_equations']=2 # 3 defines non isothermal simulation
+dat.multi['num_equations']=2 # 2 defines non isothermal simulation in EOS1
+dat.multi['num_components']=1 # just water in EOS1
 
 perm=5.0e-13 # define permeability
 poro=0.1  # define porosity
 
-#rp={'type':1, 'parameters':[0.3,0.05,1.0,1.0]}
-rp={'type':11, 'parameters':[0.1,0.0,1.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
+rp={'type':1, 'parameters':[0.3,0.05,1.0,1.0]}
+#rp={'type':11, 'parameters':[0.1,0.0,1.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
 #rp={'type':3, 'parameters':[0.3,0.05]}
 norp={'type':5, 'parameters':[]} # no rel perm option
-cp={'type':11, 'parameters':[0.0,-5000.0,-0.001618,0.85,None,None,0.1]} # capillary pressure functions and parameters - if single phase not necessary
-#cp={'type':1, 'parameters':[1e2,0.3,0.95]} # capillary pressure functions and parameters - if single phase not necessary
+#cp={'type':11, 'parameters':[0.0,5000.0,-0.001618,0.85,None,None,0.1]} # capillary pressure functions and parameters - if single phase not necessary
+cp={'type':1, 'parameters':[1e2,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
 nocp={'type':1, 'parameters':[0.0,0.0,1.0]} # no cp option
+scp={'type':1, 'parameters':[1e4,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
+
 
 conds=4.0
 heat_flux=0.24 #0.24
-
-# MAKE TOUGH GRID 
-
 
 #%% define rock types - this just generates rock types they are not necessarily assigned to elements - that happens later 
 rtypes=[] # creates empty list
@@ -98,7 +120,7 @@ porosity=poro)
 source.conductivity=4 
 source.tortuosity=0.0
 source.relative_permeability=rp
-source.capillarity=cp
+source.capillarity=scp
 source.specific_heat=1000.0
 rtypes=rtypes+[source]
 
@@ -150,31 +172,25 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False)#, hpregion={'hpr1':[[0,0,3000],[50,0,6000]],'hpr2':[[200,0,3000],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,eos=1,topsurf=topsurf)#, hpregion={'hpr1':[[0,0,3000],[50,0,6000]],'hpr2':[[200,0,3000],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 ptg.makeradial(geo,grid,width=width)
 
-## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
-#%%
-#~ Create sources and sinks GENER block in TOUGH input file.      
-#tflux=0.09 # J/m2/s example heat flux
-
-
 # additional output parameters 
-dat.parameter['max_timestep']=1000*yrsec # maximum timstep length
-dat.parameter['print_interval']=9000 # print (output) frequency to flow.out
+dat.parameter['max_timestep']=100*yrsec # maximum timstep length
+dat.parameter['print_interval']=100 # print (output) frequency to flow.out
 dat.parameter['timestep']=[1.0]#[1.0,1000.0] # initial timestep?
 dat.parameter['upstream_weight']=1.0
 dat.parameter['option'][11]=0 #mobilities are upstream weighted, permeability is harmonic weighted
-dat.output_times['time']=[1.0]#,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
+dat.output_times['time']=[1.0,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=len(dat.output_times['time'])
 #dat.parameter['tstop']=1E3*yrsec
-#dat.output_times['num_times']=50
-#dat.output_times['time_increment']= 500*yrsec
+dat.output_times['num_times']=50
+dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
-#ipt.heatgen(mod,geo,dat,grid,heat_flux)#,function={'type':'log','points':[[2.5,5.],[10000.,0.24]]},inject=[3.0e-6,1.67e6])
-ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy=8440.)
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[2.5,5.],[10000.,0.24]]}) #,inject=[3.0e-6,1.67e6])
+#ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   
 # Add data stored in grid object to pyTOUGH dat object - this is what gets turned into the TOUGH input file        
@@ -188,3 +204,7 @@ dat.write(mod+'/flow2.inp')
         
 shutil.copy('dev_files/initial_it2file',mod+'/'+mod)
 print time.clock()-t0
+
+
+
+

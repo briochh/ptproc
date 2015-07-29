@@ -51,15 +51,15 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
                     blk.centre[0] > hpr[0][0] and 
                     blk.centre[0] <= hpr[1][0]): #if in hp region
                         rocktype='hp   ' # this allows a different pmx for atmos above highperm
-            initSG=0.999 # initial gas saturation
+            initSG=0.99999 # initial gas saturation
             infvol=False # already given 1e50 volume
             pmx=grid.rocktype[rocktype].permeability[0]
             rocktype='top  ' # resets to rocktype "top  "
         else:
             rocktype = 'main '
-            initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(765.*9.81*abs(hmax-blk.centre[2]))
-            initSG=0.0
-            initT=Tmin+((np.abs(hmax-blk.centre[2])/100.0)*3.0)
+            initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(988.*9.81*abs(hmax-blk.centre[2]))
+            initSG=0.0 #10.000001
+            initT=Tmin+((np.abs(hmax-blk.centre[2])/100.0)*5.0)
             infvol=False
             if lay==geo.layerlist[-1]:
                 rocktype='sourc'
@@ -88,15 +88,20 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
             if infax is True and col is geo.columnlist[5] and lay == tlay:
                 print "inf vol top axis cell " + blk.name
                 infvol=True
-                initSG=10.9999
+                initSG=0.999
                 rocktype='bound'
             if col in ecol:
                 rocktype='bound'
-                infvol=True
-                initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(767.*9.81*abs(satelev-blk.centre[2]))
                 if blk.centre[2]>satelev:
                     initSG=0.999
+                    initT=Tmin+((np.abs(hmax-blk.centre[2])/100.0)*5.0)
                     initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)
+                    infvol=True
+                else:
+                    initSG=0.0
+                    initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(988.*9.81*abs(satelev-blk.centre[2]))
+                    #if blk.centre[2]>satelev-100. or lay == geo.layerlist[-1]:
+                    infvol=True
             pmx=ipt.pmxcalc(blk,grid,hmax,rocktype,0.004,800.)      
         ptg.rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,infvol=infvol)
     return grid
@@ -104,7 +109,7 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Boiltest_20150706_3'
+mod='Boiltest_20150724_2'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -112,9 +117,10 @@ if not os.path.exists(mod):
 yrsec=3600*365.25*24
 origin=[0,0,5500] # position of first cell in space
 width=1.0
-zcells=[10]*30+[50]*4+[100]*10+[50]*6+[25]*6+[10]*5    #+[100]*6+[50]*10+[10]*20    
+zcells=[10]*30+[50]*30+[25]*6+[10]*5    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
-xcells=[5]*12+[10]*54  #+[100]*6+[50]*10+[10]*20
+xcells=[25]*40#[5]*12+[10]*54  #+[100]*6+[50]*10+[10]*20
+#xcells=[5]*12+[10]*254+[50]*27+[100]+[1]#,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 
 #surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
 
@@ -123,15 +129,21 @@ geo=ipt.icegeo( mod, width=width, celldim=10., origin=origin,
 
 #%%
 dat=t2data('dev_files/initialflow2.inp') # read from template file 
-dat.parameter['print_block']=' w 46' # define element to print in output - useful for loggin progress of TOUGH sim 
+dat.parameter['print_block']=' w 15' # define element to print in output - useful for loggin progress of TOUGH sim 
 dat.multi['num_equations']=3 # 3 defines non isothermal simulation
 
 perm=5.0e-13 # define permeability
 poro=0.1  # define porosity
-rp={'type':1, 'parameters':[0.3,0.1,0.9,0.7]}#{'type':11, 'parameters':[0.1,0.0,0.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
+
+#rp={'type':1, 'parameters':[0.3,0.05,1.0,1.0]}
+#rp={'type':11, 'parameters':[0.3,0.05,0.0,0.5,None,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
+rp={'type':3, 'parameters':[0.3,0.05]}
 norp={'type':5, 'parameters':[]} # no rel perm option
-cp={'type':11, 'parameters':[0.0,-5000.0,0.001618,0.85,None,None,0.1]} # capillary pressure functions and parameters - if single phase not necessary
+#cp={'type':11, 'parameters':[0.0,-5000.0,-0.019941,0.65,None,None,0.1]} # capillary pressure functions and parameters - if single phase not necessary
+cp={'type':1, 'parameters':[1e4,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
 nocp={'type':1, 'parameters':[0.0,0.0,1.0]} # no cp option
+scp={'type':1, 'parameters':[1e5,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
+
 
 conds=4.0
 heat_flux=0.5 #0.24
@@ -177,7 +189,7 @@ porosity=poro)
 source.conductivity=4 
 source.tortuosity=0.0
 source.relative_permeability=rp
-source.capillarity=cp
+source.capillarity=scp
 source.specific_heat=1000.0
 rtypes=rtypes+[source]
 
@@ -239,18 +251,24 @@ ptg.makeradial(geo,grid,width=width)
 
 
 # additional output parameters 
-dat.parameter['max_timestep']=3.0e10 # maximum timstep length
-dat.parameter['print_interval']=1000 # print (output) frequency to flow.out
+dat.parameter['max_timestep']=1000*yrsec # maximum timstep length
+dat.parameter['print_interval']=50 # print (output) frequency to flow.out
 dat.parameter['timestep']=[1.0]#[1.0,1000.0] # initial timestep?
+dat.parameter['upstream_weight']=1.0
+dat.parameter['option'][11]=0 #mobilities are upstream weighted, permeability is harmonic weighted
+dat.parameter['relative_error']=1.0e-6
+dat.parameter['absolute_error']=1.0e-1
+dat.parameter['option'][16]=4
+dat.solver['closure']=1.0e-8
 dat.output_times['time']=[1.0,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=len(dat.output_times['time'])
 #dat.parameter['tstop']=1E3*yrsec
 dat.output_times['num_times']=20
-dat.output_times['time_increment']= 1000*yrsec
+dat.output_times['time_increment']= 100*yrsec
 #
 dat.clear_generators()
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[1.,5.],[10000.,0.24]]})
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[12.5,5.],[10000.,0.24]]})#,inject=[3.0e-6,1.67e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   

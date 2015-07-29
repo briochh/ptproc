@@ -33,7 +33,7 @@ def icegeo( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
               zcells=zcells, xcells=xcells, surface=surface, atmos_type=atmos_type, min_thick=min_thick)
     return geo
 
-def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004, glacier_limit=2500., infax=False):
+def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=None,satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004, glacier_limit=2500., infax=False, topsurf=None):
     """
     Method for defining ice grid. Varies slightly from ptg method.
     """
@@ -48,7 +48,7 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
         lay=geo.layer[geo.layer_name(str(blk))] # layer containing current block
         col=geo.column[geo.column_name(str(blk))] # column containing current block
         tlay=geo.column_surface_layer(col)    
-        hmax=geo.block_surface(tlay,col)
+        hmax=col.surface
         if blk in atmos:
             rocktype='top  ' # assign rocktype "top  "
             initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)  # initial presure condition - MAY NOT BE APPROPRIATE - WHAT IS THE PRESSURE UNDER THICK GLACIER AT 5000 m amsl??         
@@ -67,13 +67,21 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
                         rocktype='hp   ' # this allows a different pmx for atmos above highperm
             initSG=0.999 # initial gas saturation
             infvol=False # already given 1e50 volume
+#            if topsurf is not None:
+#                ind=topsurf[:,0].tolist().index(col.centre[0])
+#                hmax=topsurf[ind,1]
+#                pmx=pmxcalc(blk,grid,hmax,rocktype,0.004,800.)
+#            else:
             pmx=grid.rocktype[rocktype].permeability[0]
             rocktype='top  ' # resets to rocktype "top  "
         else:
             rocktype = 'main '
-            initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)+(997.0479*9.81*abs(hmax-blk.centre[2]))
-            initSG=0.0
-            initT=Tmin+((np.abs(hmax-blk.centre[2])/100.0)*3.0)
+            initP=(atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588))+(997.0479*9.81*abs(hmax-blk.centre[2]))
+            if blk.centre[2]<4800:
+                initSG=0.0
+            else:
+                initSG=0.0
+            initT=Tmin + 10.0 + ((np.abs(hmax-blk.centre[2])/100.0)*3.0)
             infvol=False
             if lay==geo.layerlist[-1]:
                 rocktype='sourc'
@@ -104,8 +112,11 @@ def icegrid(geo,dat,rocks,boundcol,lpregion=None,hpregion=None,heatsource=None,s
                 infvol=True
                 initSG=10.9999
                 rocktype='bound'
+            if topsurf is not None:
+                ind=topsurf[:,0].tolist().index(col.centre[0])
+                hmax=topsurf[ind,1]
             pmx=pmxcalc(blk,grid,hmax,rocktype,0.004,800.)      
-        ptg.rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,infvol=infvol)
+        ptg.rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,eos=eos,infvol=infvol)
     return grid
                 
     
@@ -119,10 +130,11 @@ def pmxcalc(blk,grid,hmax,rock,Saar_lam=0.004,switch_depth=None):
         pmx=grid.rocktype[rock].permeability[0]*np.exp(-Saar_lam*depth)
     return pmx        
 
-def heatgen(mod,geo,dat,grid,heat_flux,function=None):
+def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None):
     f = open(mod+'/Heat_genertot.txt','w')
     f.write('Model = '+mod+'\n')
     allgens=[]
+    allinject=[]
     cols=[col for col in geo.columnlist]
     if function is not None:
         func=function['type']
@@ -145,19 +157,36 @@ def heatgen(mod,geo,dat,grid,heat_flux,function=None):
         lay=geo.layerlist[-1] # bottom layer
         blkname=geo.block_name(lay.name,col.name) # get block name for the bottom layer of this column
         if grid.block[blkname].hotcell is not True:
-            if func=='exp':            
+            if func=='exp':
                 heat_flux=a*spy.e**(b*grid.block[blkname].centre[0])
             elif func=='log':
-                heat_flux=a*spy.log(b*grid.block[blkname].centre[0])
+                #if grid.block[blkname].centre[0] < 250:
+                #    heat_flux=p1[1]
+                #else:
+                    heat_flux=a*spy.log(b*(grid.block[blkname].centre[0]))
+            #gxa=[0.0]+[col.area*heat_flux]*2
             gxa=col.area*heat_flux
-            gen=t2generator(name=' H'+col.name,block=blkname,type='HEAT',gx=gxa) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
+            #times=[0.]+[1000*365.25*3600*24]+[1.0e6*365.25*3600*24]
+            #numt=len(times)
+            gen=t2generator(name=' H'+col.name,block=blkname,type='HEAT',gx=gxa, ex=None,hg=None,fg=None)#, rate=gxa, time=times, ltab=numt) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
             dat.add_generator(gen) # add generater to TOUGH2 input
             allgens.append(gxa)
+            if grid.block[blkname].centre[0] < 250. and inject is not None: # axial column
+                ixa=col.area*inject[0]
+                gen=t2generator(name=' i'+col.name,block=blkname,type='COM1',gx=ixa, ex=inject[1]) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
+                dat.add_generator(gen)
+                allinject.append(ixa)
     allgens=np.array(allgens)
-    gensum=np.sum(allgens)
+    gensum=np.sum(allgens)    
+    allinject=np.array(allinject)
+    injectsum=np.sum(allinject)
     f.write('Total generation in model = '+str(gensum)+' J/s\n')
     f.write('Total generation rate per m2 = '+str(gensum/geo.area)+' J/s/m2\n')
+    if inject is not None:
+        f.write('Total injection in model = '+str(injectsum)+' kg/s\n')
+        f.write('injection rate per m2 = '+str(inject[0])+' kg/s/m2\n')
     f.close()
+    
 
 def simple_readres( modelname, savevtk=False, tough2_input=None, geom_data=None, results=None):
     """Easy reading of TOUGH2 results into pyTOUGH.  Option to write out vtk results files. Will return pyTOUGH results object if desired.
@@ -221,7 +250,7 @@ def simple_readres( modelname, savevtk=False, tough2_input=None, geom_data=None,
        t=t1-t0
        print 'time2writevtks',t
     os.chdir(current_d)   
-    return results
+    return geo,grid,dat,results
     
 def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=None, results=None, times={}, fall=None,flows={'FLOH':{},'FLOF':{}}, logt=False):
     """ Function to calculated surface heat flow from pytough results
@@ -273,7 +302,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         Area=np.array(Area)[inds]
         totq=np.sum(np.multiply(qts.T,Area),axis=1)
             
-        if flow=='FLOH': # calculate meltrate etc.
+        if flow=='FLOH' or flow=='FHEAT': # calculate meltrate etc.
             unit='W'
             meltratematrix= (qts.T/3.35E5) # kg/s/m2 
             # but negative meltrate cant exist....
@@ -451,3 +480,48 @@ def surfaceflow(atmoscells,atmosconns,results=None,grid=None,flow='FLOH'):
 #                glac_toq=np.add(glac_toq,q) 
             #atxs[conn]=cen[0]
     return flowDict,tq
+    
+def makewt(model,geo=None,grid=None,dat=None,results=None):
+    t0=tinit=time.clock()
+    mod=model # define model name
+    read=True ########### I N P U T #########################
+    readgeo=True ########### I N P U T #########################
+    geo_fname='grd.dat'
+    readdat=True ########### I N P U T #########################
+    dat_fname='flow2.inp'
+    readresults=True ########### I N P U T #########################
+    results_fname='flow2.out'
+    
+    print 'model=',mod
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+mod)  
+    
+    if read:
+        if geo is None: 
+            print 'Reading geometry from '+ geo_fname
+            geo=mulgrid(geo_fname)
+            geo.radial=False # set flag that geometry is not yet radial.
+        if dat is None: 
+            print 'Reading input data from '+ dat_fname
+            dat=t2data(dat_fname) 
+        if results is None:
+            print 'Reading results from '+ results_fname
+            results=t2listing(results_fname)
+    t1=time.clock()        
+    print 'time to read=',(t1-t0)  
+    
+    if grid is None:
+        grid=dat.grid # define input grid    
+    xz=[]
+    results.last()
+    sat=results.element['SL']
+    for col in geo.columnlist:
+        colblklist= [block for block in grid.blocklist if block.centre[0]==col.centre[0] and sat[geo.block_name_index[block.name]]==1.0]
+        wtelev=np.max([geo.block_surface(geo.layer[geo.layer_name(str(blk))],col) for blk in colblklist])
+        xz.append([col.centre[0], wtelev])
+    xz.append([xz[-1][0]+xz[0][0],xz[-1][1]])
+    xz.insert(0,[xz[0][0]-xz[0][0],xz[0][1]])
+
+    xz=np.array(xz)
+
+    np.savetxt('surface.txt',xz,header='/Distance\tHeight',fmt='%g',delimiter='\t')
+    os.chdir('..')

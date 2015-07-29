@@ -82,7 +82,7 @@ for blk in grid.blocklist[0:]:
         initT=350
         cond.variable[2]=initT
         cond.variable[1]=0.0 # zeros gas satuartation
-        cond.variable[0]=2.0e7 # increase P
+        #cond.variable[0]=2.0e7 # increase P
         blk.volume=blk.volume*1E50
 
 geo.write(mod + '/grd.dat')
