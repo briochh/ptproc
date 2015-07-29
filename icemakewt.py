@@ -25,8 +25,8 @@ os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define wor
 basemod='Cota20150727_2_rech' # define model name
 mod='Cota20150729_2'
 
-basegeo,basegrid,basedat,results=ipt.simple_readres(basemod,savevtk=True)
-ipt.makewt(basemod,basegeo,basegrid,basedat,results)
+#basegeo,basegrid,basedat,results=ipt.simple_readres(basemod,savevtk=True)
+#ipt.makewt(basemod,basegeo,basegrid,basedat,results)
 
 yrsec=3600*365.25*24
 width=1.0

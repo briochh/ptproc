@@ -452,22 +452,25 @@ def surfaceflow(atmoscells,atmosconns,results=None,grid=None,flow='FLOH'):
 #    X=np.array([]).reshape(0,1) # array for storing the x dimension of each connection 
 #    Area=np.array([]).reshape(0,1)
 #    qts=[] # empty list for storing all flows
-    flowDict={}    
-    for atmosset in atmosconns: # loop over each set of atmos connections
-        for conn in atmosset: # loop over each connection in set
-            cell1,cell2=conn
-            # tq is time, q is flow
-            (tq,q) = results.history([('c', conn, flow)]) # here just pull out flow of HEAT (could do more)
-            # flow from cell1 to cell2 is negative we want to make it uniform so that flow into the atmosphere is always negative
-            if grid.block[cell2] in atmoscells:
-                q=-q/(grid.connection[conn].area) # divide by conneciton area to get flux in /m2
-                cen=grid.block[cell1].centre # 
-            elif grid.block[cell1] in atmoscells:
-                q=q/(grid.connection[conn].area) # if atmos cell is cell1 the sign of the flow needs to be switched
-                cen=grid.block[cell2].centre
-            flowDict[conn]=cen[0],grid.connection[conn].area,q # dictionary of flow timseries for each connection
-    
-            # compile all the flow time series (for each connection)        
+    flowDict={} 
+    sels=[('c',conn,flow) for atmosset in atmosconns for conn in atmosset]
+    Q=results.history(sels)
+    tq=Q[0][0]
+    for sel,q in zip(sels,Q):
+        conn=sel[1]
+        cell1,cell2=conn
+        # tq is time, q is flow
+        #(tq,q) = results.history([('c', conn, flow)]) # here just pull out flow of HEAT (could do more)
+        # flow from cell1 to cell2 is negative we want to make it uniform so that flow into the atmosphere is always negative
+        if grid.block[cell2] in atmoscells:
+            q=-q[1]/(grid.connection[conn].area) # divide by conneciton area to get flux in /m2
+            cen=grid.block[cell1].centre # 
+        elif grid.block[cell1] in atmoscells:
+            q=q[1]/(grid.connection[conn].area) # if atmos cell is cell1 the sign of the flow needs to be switched
+            cen=grid.block[cell2].centre
+        flowDict[conn]=cen[0],grid.connection[conn].area,q # dictionary of flow timseries for each connection
+
+        # compile all the flow time series (for each connection)        
 #            if qts == []:
 #                qts=[q] # the first time through need to initialise our list
 #            else:
@@ -478,7 +481,7 @@ def surfaceflow(atmoscells,atmosconns,results=None,grid=None,flow='FLOH'):
 #            # can look at total heat flux that is within a certain X limit (e.g. within the range of a glacier)        
 #            if cen[0] <= 2500.0:
 #                glac_toq=np.add(glac_toq,q) 
-            #atxs[conn]=cen[0]
+        #atxs[conn]=cen[0]
     return flowDict,tq
     
 def makewt(model,geo=None,grid=None,dat=None,results=None):
