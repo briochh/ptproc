@@ -80,8 +80,8 @@ for blk in grid.blocklist[0:]:
         cond=inc[blkname]
         print blkname
         initT=350
-        cond.variable[2]=initT
-        cond.variable[1]=0.0 # zeros gas satuartation
+        cond.variable[1]=initT # [1] for eos1
+        #cond.variable[1]=0.0 # zeros gas satuartation
         #cond.variable[0]=2.0e7 # increase P
         blk.volume=blk.volume*1E50
 
