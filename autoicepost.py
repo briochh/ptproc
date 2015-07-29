@@ -43,7 +43,8 @@ readflow=True ########### I N P U T #########################
 
 save=True ########### I N P U T #########################
 savevtk=True ########### I N P U T #########################
-flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
+flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
+#flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
 #os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+mod)    
