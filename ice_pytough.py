@@ -48,16 +48,22 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
         lay=geo.layer[geo.layer_name(str(blk))] # layer containing current block
         col=geo.column[geo.column_name(str(blk))] # column containing current block
         tlay=geo.column_surface_layer(col)    
-        hmax=col.surface
+        if topsurf is not None:
+            ind=topsurf[:,0].tolist().index(col.centre[0])
+            hmax=topsurf[ind,1]
+        else: hmax=col.surface
         if blk in atmos:
             rocktype='top  ' # assign rocktype "top  "
-            initP=atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588)  # initial presure condition - MAY NOT BE APPROPRIATE - WHAT IS THE PRESSURE UNDER THICK GLACIER AT 5000 m amsl??         
-            Tmin=2.      
-            if blk.centre[0] <= glacier_limit: 
-                initT=Tmin # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
+            initP=atmosP*spy.power(1.-(col.surface*2.25577e-5),5.25588)  # initial presure condition - MAY NOT BE APPROPRIATE - WHAT IS THE PRESSURE UNDER THICK GLACIER AT 5000 m amsl??         
+            Tmin=2.
+            if blk.centre[0] <= 350.:
+                initT=50. + (hmax-blk.centre[2])*(12.5/100.)
+            elif 350.<= blk.centre[0] <= glacier_limit: 
+                initT=Tmin+(hmax-blk.centre[2])*(12.5/100.) # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
             else:
-                initT = 25.8 - (hmax*(5.4/1000.)) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
-                if initT <= Tmin: initT=Tmin
+                initT = 25.8 - (blk.centre[2]*(5.4/1000.)) + (hmax-blk.centre[2])*(12.5/100.) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
+            if initT <= Tmin: initT=Tmin
+            #initT=25.8 - (hmax*(5.4/1000.)) + (hmax-blk.centre[2]*15./100.) 150.+(-0.0225*blk.centre[0])
             if (hpregion is not None and 'hp   ' in grid.rocktype.keys()):
                 for hpr in hpregion.values():
                     if (blk.centre[2] > hpr[0][2] and 
@@ -76,12 +82,15 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
             rocktype='top  ' # resets to rocktype "top  "
         else:
             rocktype = 'main '
-            initP=(atmosP*spy.power(1.-(hmax*2.25577e-5),5.25588))+(997.0479*9.81*abs(hmax-blk.centre[2]))
+            initP=(atmosP*spy.power(1.-(col.surface*2.25577e-5),5.25588))+(997.0479*9.81*abs(col.surface-blk.centre[2]))
             if blk.centre[2]<4800:
                 initSG=0.0
             else:
                 initSG=0.0
-            initT=Tmin + 10.0 + ((np.abs(hmax-blk.centre[2])/100.0)*3.0)
+            if blk.centre[0]<10000:
+                initT=Tmin + ((np.abs(hmax-blk.centre[2])/100.0)*12.5)
+            else:            
+                initT=Tmin + 10.0 + ((np.abs(hmax-blk.centre[2])/100.0)*3.0)
             infvol=False
             if lay==geo.layerlist[-1]:
                 rocktype='sourc'
@@ -112,9 +121,6 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
                 infvol=True
                 initSG=10.9999
                 rocktype='bound'
-            if topsurf is not None:
-                ind=topsurf[:,0].tolist().index(col.centre[0])
-                hmax=topsurf[ind,1]
             pmx=pmxcalc(blk,grid,hmax,rocktype,0.004,800.)      
         ptg.rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,eos=eos,infvol=infvol)
     return grid
@@ -171,7 +177,7 @@ def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None):
             gen=t2generator(name=' H'+col.name,block=blkname,type='HEAT',gx=gxa, ex=None,hg=None,fg=None)#, rate=gxa, time=times, ltab=numt) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
             dat.add_generator(gen) # add generater to TOUGH2 input
             allgens.append(gxa)
-            if grid.block[blkname].centre[0] < 250. and inject is not None: # axial column
+            if grid.block[blkname].centre[0] < 150. and inject is not None: # axial column
                 ixa=col.area*inject[0]
                 gen=t2generator(name=' i'+col.name,block=blkname,type='COM1',gx=ixa, ex=inject[1]) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
                 dat.add_generator(gen)

@@ -394,6 +394,11 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,min
             blkname=geo.block_name(lay.name,col.name)
             gx=constant
             gxa=col.area*gx
+            if enthalpy is "var":
+                if col.centre[0] <= 350.:
+                    enthalpy=209.0e3
+                else: 
+                    enthalpy=8440.
             gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gxa, ex=enthalpy)
             dat.add_generator(gen)
             allgens.append(gxa)

@@ -23,7 +23,7 @@ plt.close('all')
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
 
 basemod='Cota20150727_2_rech' # define model name
-mod='Cota20150729_2'
+mod='Cota20150803_11'
 
 #basegeo,basegrid,basedat,results=ipt.simple_readres(basemod,savevtk=True)
 #ipt.makewt(basemod,basegeo,basegrid,basedat,results)
@@ -36,12 +36,14 @@ maxel=np.max(surf[:,2])
 surfrange=np.max(surf[:,2])-np.min(surf[:,2])
 origin=[0,0,np.ceil(maxel/100)*100] # position of first cell in space
 top2bottom=origin[2]-3000.0
-surfz=[10]*np.ceil(surfrange/100)*10
+#surfz=[10]*np.ceil(surfrange/100)*10
+surfz=[25]*np.ceil(surfrange/100)*4
 left=top2bottom-np.sum(surfz)-100.0
-zcells=surfz+[25]*np.int(left/25.)+[10]*9+[5]*2
+#zcells=surfz+[25]*np.int(left/25.)+[10]*9+[5]*2
+zcells=surfz+[50]*np.int(left/50.)+[25]*3+[10]*1+[5]*3
 dy=1 # size of cell in y direction
-xcells=[5]*12+[10]*254+[25]*20+[50]*17+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
-
+#xcells=[5]*12+[10]*254+[25]*20+[50]*17+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
+xcells=[10]*6+[25]*100+[50]*10+[100]*9+[200,300,400,500,600]#,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 
 print mod
 if not os.path.exists(mod):
@@ -69,17 +71,18 @@ dat.multi['num_components']=1 # just water in EOS1
 perm=5.0e-13 # define permeability
 poro=0.1  # define porosity
 
-rp={'type':1, 'parameters':[0.3,0.05,1.0,1.0]}
-#rp={'type':11, 'parameters':[0.1,0.0,1.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
-#rp={'type':3, 'parameters':[0.3,0.05]}
+#rp={'type':1, 'parameters':[0.3,0.05,0.95,0.7]}
+#rp={'type':11, 'parameters':[0.3,0.05,0.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
+rp={'type':3, 'parameters':[0.3,0.05]}
+srp={'type':3, 'parameters':[0.3,0.05]}
 norp={'type':5, 'parameters':[]} # no rel perm option
-#cp={'type':11, 'parameters':[0.0,5000.0,-0.001618,0.85,None,None,0.1]} # capillary pressure functions and parameters - if single phase not necessary
-cp={'type':1, 'parameters':[1e2,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
+#cp={'type':11, 'parameters':[0.0,500.0,-0.188572,0.6,None,None,0.0]} # capillary pressure functions and parameters - if single phase not necessary
+cp={'type':1, 'parameters':[1e3,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
 nocp={'type':1, 'parameters':[0.0,0.0,1.0]} # no cp option
-scp={'type':1, 'parameters':[1e4,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
+scp={'type':1, 'parameters':[1e5,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
 
 
-conds=4.0
+conds=2.8#4.0
 heat_flux=0.24 #0.24
 
 #%% define rock types - this just generates rock types they are not necessarily assigned to elements - that happens later 
@@ -119,7 +122,7 @@ source=rocktype('sourc', nad=3, permeability = [perm]*2+[perm],
 porosity=poro)
 source.conductivity=4 
 source.tortuosity=0.0
-source.relative_permeability=rp
+source.relative_permeability=srp
 source.capillarity=scp
 source.specific_heat=1000.0
 rtypes=rtypes+[source]
@@ -176,7 +179,7 @@ grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,eos=1,topsurf=topsurf)#, hpregi
 ptg.makeradial(geo,grid,width=width)
 
 # additional output parameters 
-dat.parameter['max_timestep']=100*yrsec # maximum timstep length
+dat.parameter['max_timestep']=10*yrsec # maximum timstep length
 dat.parameter['print_interval']=100 # print (output) frequency to flow.out
 dat.parameter['timestep']=[1.0]#[1.0,1000.0] # initial timestep?
 dat.parameter['upstream_weight']=1.0
@@ -185,11 +188,11 @@ dat.output_times['time']=[1.0,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.15
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=len(dat.output_times['time'])
 #dat.parameter['tstop']=1E3*yrsec
-dat.output_times['num_times']=50
+dat.output_times['num_times']=75
 dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[2.5,5.],[10000.,0.24]]}) #,inject=[3.0e-6,1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[2.5,1.],[10000.,0.24]]},inject=[1.0e-3,1.67e6])
 #ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   

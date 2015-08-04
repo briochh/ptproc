@@ -21,7 +21,7 @@ import pytoughgrav as ptg
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150727_2_rech'
+mod='Cota20150803_12'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -31,7 +31,8 @@ origin=[0,0,6000] # position of first cell in space
 width=1.0
 zcells=[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*30+[25]*6+[10]*5    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
-xcells=[5]*12+[10]*254+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
+#xcells=[5]*12+[10]*254+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
+xcells=[10]*6+[25]*100+[50]*10+[100]*9+[200,300,400,500,600]#,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 
 surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
 
@@ -40,21 +41,25 @@ geo=ipt.icegeo( mod, width=width, celldim=10., origin=origin,
 
 #%%
 dat=t2data('dev_files/initialflow2.inp') # read from template file 
-dat.parameter['print_block']=' w 46' # define element to print in output - useful for loggin progress of TOUGH sim 
-dat.multi['num_equations']=2 # 3 defines non isothermal simulation
+dat.parameter['print_block']='dd 46' # define element to print in output - useful for loggin progress of TOUGH sim 
+dat.multi['num_equations']=3 # 3 defines non isothermal simulation
 
 perm=5.0e-13 # define permeability
 poro=0.1  # define porosity
 
 #rp={'type':1, 'parameters':[0.3,0.05,1.0,1.0]}
-rp={'type':11, 'parameters':[0.1,0.0,1.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
-#rp={'type':3, 'parameters':[0.3,0.05]}
+#rp={'type':11, 'parameters':[0.1,0.0,1.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
+rp={'type':3, 'parameters':[0.3,0.05]}
+srp={'type':3, 'parameters':[0.3,0.05]}
 norp={'type':5, 'parameters':[]} # no rel perm option
-cp={'type':11, 'parameters':[0.0,-5000.0,-0.001618,0.85,None,None,0.1]} # capillary pressure functions and parameters - if single phase not necessary
+#cp={'type':11, 'parameters':[0.0,-5000.0,-0.001618,0.85,None,None,0.1]} # capillary pressure functions and parameters - if single phase not necessary
 #cp={'type':1, 'parameters':[1e2,0.3,0.95]} # capillary pressure functions and parameters - if single phase not necessary
+cp={'type':1, 'parameters':[1e3,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
 nocp={'type':1, 'parameters':[0.0,0.0,1.0]} # no cp option
+scp={'type':1, 'parameters':[1e5,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
 
-conds=4.0
+
+conds=2.8
 heat_flux=0.24 #0.24
 
 # MAKE TOUGH GRID 
@@ -160,21 +165,23 @@ ptg.makeradial(geo,grid,width=width)
 
 
 # additional output parameters 
-dat.parameter['max_timestep']=1000*yrsec # maximum timstep length
+dat.parameter['max_timestep']=10*yrsec # maximum timstep length
 dat.parameter['print_interval']=9000 # print (output) frequency to flow.out
 dat.parameter['timestep']=[1.0]#[1.0,1000.0] # initial timestep?
 dat.parameter['upstream_weight']=1.0
 dat.parameter['option'][11]=0 #mobilities are upstream weighted, permeability is harmonic weighted
-dat.output_times['time']=[1.0]#,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
+dat.output_times['time']=[1.0,3.1558e+08,3.1558e+09,3.1558e+10]#,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=len(dat.output_times['time'])
 #dat.parameter['tstop']=1E3*yrsec
+dat.output_times['num_times']=75
+dat.output_times['time_increment']= 500*yrsec
 #dat.output_times['num_times']=50
 #dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
-#ipt.heatgen(mod,geo,dat,grid,heat_flux)#,function={'type':'log','points':[[2.5,5.],[10000.,0.24]]},inject=[3.0e-6,1.67e6])
-ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy=8440.)
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[2.5,1.],[10000.,0.24]]},inject=[1.0e-3,1.67e6])
+ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var')#enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   
 # Add data stored in grid object to pyTOUGH dat object - this is what gets turned into the TOUGH input file        

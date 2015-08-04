@@ -20,7 +20,7 @@ t0=tinit=time.clock()
 plt.close('all')
 
 bmod=''#'Cota20150619_1/Cota20150619_1_ptb/'
-mod='Cota20150729_2' # define model name
+mod='Cota20150729_1' # define model name
 read=True ########### I N P U T #########################
 readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'

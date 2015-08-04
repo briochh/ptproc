@@ -22,6 +22,7 @@ plt.close('all')
 parser = argparse.ArgumentParser(description='Prepare perturbation model')
 parser.add_argument('-b','--base', help='basemodel name',required=True)
 parser.add_argument('-l','--location', help='location',required=False, default='.')
+parser.add_argument('-e','--eos',help='eos',required=False,default=3)
 
 args = parser.parse_args()
 
@@ -29,6 +30,7 @@ os.chdir(args.location)
 
 
 mod=args.base # define model name
+eos=args.eos
 read=True ########### I N P U T #########################
 readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
@@ -43,8 +45,9 @@ readflow=True ########### I N P U T #########################
 
 save=True ########### I N P U T #########################
 savevtk=True ########### I N P U T #########################
-flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
-#flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
+if eos==1:
+    flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
+else: flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
 #os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+mod)    
