@@ -14,13 +14,13 @@ import shutil
 
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Gravpaper") # define working directory
-mod='20150806_1'
+mod='20150806_3'
 if not os.path.exists(mod):
     os.makedirs(mod)
     
 width=10.    
-zcells= [2]*50+[10]*20+[2]*55+[10]*4 # [10]*34+[2]*80+[10]*19+[2]*30+[10]*5 # 800 m (down to 50 m bsl) 
-surf=ptg.topsurf('dev_files/flatprofile.txt',delim='\t',headerlines=1,width=width)
+zcells=[10]*34+[2]*80+[10]*19+[2]*30+[10]*5 # 800 m (down to 50 m bsl) # [2]*50+[10]*20+[2]*55+[10]*4 # 400 m
+surf=ptg.topsurf('dev_files/2Dprofile.txt',delim='\t',headerlines=1,width=width)
 modelorigin=(0,0)#(586034.886,1852660.465)
 
 ## define well locations
@@ -33,8 +33,8 @@ wellx=[50.0,500.0,1100.0,1750,2650,3200]##5.0,50.0,500,1750,2200,2650###########
 welly=[width/2.0]*len(wellx) # make y coords same length as x coords
 wells=np.hstack((np.transpose([wellx]),np.transpose([welly])))
 
-origin=([0,0,400]) # ([0,0,750])
-geo=ptg.geo2D( mod, length=3600, width=width, celldim=10., origin=([0,0,400]),
+origin=([0,0,750]) # ([0,0,750])
+geo=ptg.geo2D( mod, length=3600, width=width, celldim=10., origin=origin,
               zcells=zcells, surface=surf, wells=wells )
 
 
@@ -105,7 +105,7 @@ top.capillarity=nocp
 top.specific_heat=1000.0
 rtypes=rtypes+[top]
 
-lpregion=[[0,0,500],[1400,0,500]]#[[0,0,-50],[1400,0,250]]
+lpregion=[[0,0,-50],[1400,0,250]]#[[0,0,500],[1400,0,500]]#
 newlist=np.array([(col,col.centre[0]) for col in geo.columnlist])
 ecol=[newlist[newlist[:,1].argsort()][-1,0]]
 print ecol

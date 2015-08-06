@@ -117,7 +117,7 @@ hotcell.specific_heat=1000.0
 rtypes=rtypes+[hotcell]
 
 # define object for atmosphere
-top=rocktype('top  ', nad=3, permeability = [perm]*2+[perm],
+top=rocktype('top  ', nad=3, density=1.225, permeability = [perm]*2+[perm],
 porosity=poro)
 top.conductivity=4 
 top.tortuosity=0.0

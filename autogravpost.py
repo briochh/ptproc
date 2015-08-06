@@ -102,7 +102,8 @@ if read:
     if readresults is True:
         print 'Reading results from '+ results_fname
         results=t2listing(results_fname)
-    if readsat is True: 
+    if readsat is True:
+        sat_fname='results/sat.pkl'
         if os.path.isfile(sat_fname):
             print 'Reading saturation data from '+ sat_fname
             sat=ptg.load_obj(sat_fname)
