@@ -64,6 +64,7 @@ dat.output_times['time']=[1.0]
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=500
 dat.parameter['option'][12]=2
+dat.parameter['tstop']=1.5E2*3600*24*365.32
 
 dat.parameter['print_block']='ay 40'#############################################################
 
