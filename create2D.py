@@ -14,7 +14,7 @@ import shutil
 
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Gravpaper") # define working directory
-mod='20150527_2'
+mod='20150806_1'
 if not os.path.exists(mod):
     os.makedirs(mod)
     
@@ -44,7 +44,7 @@ dat=t2data('dev_files/initialflow2.inp') # read from template file
 # define relative permeability and cp paramters to use
 rp={'type':11, 'parameters':[0.1,0.0,0.0,0.5,0.0,None,1.0]}
 norp={'type':5, 'parameters':[]}
-cp={'type':11, 'parameters':[0.0,-5000.0,0.001618,0.85,None,None,0.0]}
+cp={'type':11, 'parameters':[0.0,5000.0,-0.001618,0.85,None,None,0.0]}
 nocp={'type':1, 'parameters':[0.0,0.0,1.0]}
 highk=5.0e-13
 lowk=1.0e-16
@@ -139,6 +139,8 @@ grid.write_vtk(geo,mod+'/inparam.vtk')
 ## write tough2 input file   
 dat.write(mod+'/flow2.inp')
 shutil.copy('dev_files/initial_it2file',mod+'/'+mod)
+shutil.copy('dev_files/20150527_2_rand.dat',mod+'/')
+
 print time.clock()-t0
    
 

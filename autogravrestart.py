@@ -15,27 +15,44 @@ import pytoughgrav as ptg
 import matplotlib.pyplot as plt
 import time
 import shutil
+import argparse
 
 t0=time.clock()
 plt.close('all')
-#%%
-os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper')
 
-mod='20150804_1_var'
-basemod='20150804_1'
+#%%
+parser = argparse.ArgumentParser(description='Prepare perturbation model')
+parser.add_argument('-b','--base', help='basemodel name',required=True)
+parser.add_argument('-l','--location', help='location',required=False, default='.')
+parser.add_argument('-n','--number',help='var number',required=False,defaullt='')
+#parser.add_argument('-heat','--heatsource',help='heat source region for ptb',  nargs='+', type=int, required=False)
+#parser.add_argument('-fr','--fluidsource',help='mass source injection?',required=False, default=False)
+#parser.add_argument('-fr','--fluidsource',help='mass source injection?',required=False, default=False)
+
+
+
+args = parser.parse_args()
+
+#%%
+os.chdir(args.location)
+
+
+basemod=args.base
+number=args.number
+mod=basemod+'_var'+number
 if not os.path.exists(mod):
     os.makedirs(mod)
 
 # read template file    
-dat=t2data(basemod+'/flow2.inp')
-geo=mulgrid(basemod+'/grd.dat')
+dat=t2data('flow2.inp')
+geo=mulgrid('grd.dat')
 grid=dat.grid
 ptg.makeradial(geo,None,width=10.)
 # INCON
 # change initial conditions from base model SAVE file
 dat.incon.clear()
 # Read from existing file
-inc=t2incon(basemod+'/flow2.sav')
+inc=t2incon('flow2.sav')
 inc.write(mod+'/flow2.inc')
 
 #%% update T2 params
@@ -51,7 +68,7 @@ dat.parameter['option'][12]=2
 dat.parameter['print_block']='ay 40'#############################################################
 
 #%% load recharge data
-rech=np.loadtxt(r'C:\Users\glbjch\Local Documents\Work\Modelling\Gravpaper\dev_files\20150527_2_rand.dat')
+rech=np.loadtxt('20150527_2_rand.dat')
 ## Define GENER block
 #fpms=1.01308803322 # flux per meter squared
 #%% evevation dependent params
@@ -72,7 +89,7 @@ grid.write_vtk(geo,mod+'/inparam.vtk')
 #   
 ## write tough2 input file   
 dat.write(mod+'/flow2.inp')
-shutil.copy('dev_files/initial_it2file',mod+'/'+mod)
+shutil.copy(basemod,mod+'/'+mod)
 print time.clock()-t0
 
 allgenscaled=np.divide(allgens.T,Areas)
