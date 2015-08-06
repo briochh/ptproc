@@ -21,7 +21,7 @@ import pytoughgrav as ptg
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150803_12'
+mod='Cota20150806_1'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -155,7 +155,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False)#, hpregion={'hpr1':[[0,0,3000],[50,0,6000]],'hpr2':[[200,0,3000],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False, hpregion={'hpr1':[[0,0,3000],[250,0,6000]]})#,'hpr2':[[200,0,3000],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 ptg.makeradial(geo,grid,width=width)
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
@@ -166,7 +166,7 @@ ptg.makeradial(geo,grid,width=width)
 
 # additional output parameters 
 dat.parameter['max_timestep']=10*yrsec # maximum timstep length
-dat.parameter['print_interval']=9000 # print (output) frequency to flow.out
+dat.parameter['print_interval']=100 # print (output) frequency to flow.out
 dat.parameter['timestep']=[1.0]#[1.0,1000.0] # initial timestep?
 dat.parameter['upstream_weight']=1.0
 dat.parameter['option'][11]=0 #mobilities are upstream weighted, permeability is harmonic weighted
@@ -180,7 +180,7 @@ dat.output_times['time_increment']= 500*yrsec
 #dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[2.5,1.],[10000.,0.24]]},inject=[1.0e-3,1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,2.],[10000.,0.24]]},inject=[150,2.0e-3,1.67e6])#1.67e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var')#enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   

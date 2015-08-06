@@ -20,12 +20,12 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Boiltest_20150722_4'
+model='Cota20150804_4'
 yrsec=365.25*24*3600
-models=[model,model+'_ptb',model+'_rtn']
+models=[model,model+'_ptb']#,model+'_rtn']
 times={}
 ts=np.zeros(1)
-glaclim=[0.,2500]
+glaclim=[350.,2500]
 if save:
     os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+model)
     if not os.path.exists('stitched'): 

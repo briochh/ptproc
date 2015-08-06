@@ -11,6 +11,7 @@ import matplotlib
 import os
 import random
 import pytoughgrav as ptg
+import ice_pytough as ipt
 import matplotlib.pyplot as plt
 import time
 import shutil
@@ -21,7 +22,7 @@ plt.close('all')
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi')
 
 
-basemod='Cota20150612_1'
+basemod='Cota20150804_4'
 mod=basemod+'_ptb'
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -45,22 +46,28 @@ dat.output_times['time_increment']= 10*yrsec
 
 dat.output_times['num_times_specified']=1
 dat.output_times['num_times']=200
-dat.parameter['max_timestep']=10*yrsec # maximum timstep length
+dat.parameter['max_timestep']=1*yrsec # maximum timstep length
 dat.parameter['print_interval']=50 # print (output) frequency to flow.out
 dat.parameter['tstop']=1E3*yrsec
 
+dat.clear_generators()
+heat_flux=0.24
+for blk in grid.blocklist[0:]: blk.hotcell=False
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,2.],[10000.,0.24]]},inject=[300,1.0e-3,1.67e6])
+ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy=2.09e5)#enthalpy=8440.)
 
-for col in geo.columnlist[:]:
+
+#for col in geo.columnlist[:]:
 #        if col not in ecol:
-    lay=geo.layerlist[-1] # bottom layer
-    blkname=geo.block_name(lay.name,col.name) # get block name for the bottom layer of this column
-    x=grid.block[blkname].centre[0]
-    if x <= 500:
-        cond=inc[blkname]
-        print blkname
-        initT=350
-        cond.variable[2]=initT
-        grid.block[blkname].volume=grid.block[blkname].volume*1E50
+#    lay=geo.layerlist[-1] # bottom layer
+#    blkname=geo.block_name(lay.name,col.name) # get block name for the bottom layer of this column
+#    x=grid.block[blkname].centre[0]
+#    if x <= 500:
+#        cond=inc[blkname]
+#        print blkname
+#        initT=350
+#        cond.variable[2]=initT
+#        grid.block[blkname].volume=grid.block[blkname].volume*1E50
 
 geo.write(mod + '/grd.dat')
 grid.write_vtk(geo,mod+'/'+mod+'_initial.vtk') 

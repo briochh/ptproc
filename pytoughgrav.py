@@ -394,11 +394,15 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,min
             blkname=geo.block_name(lay.name,col.name)
             gx=constant
             gxa=col.area*gx
-            if enthalpy is "var":
+            if enthalpy is "var" or etype is 'var':
+                etype='var'
                 if col.centre[0] <= 350.:
-                    enthalpy=209.0e3
+                    T=50.
+                #    enthalpy=209.0e3
                 else: 
-                    enthalpy=8440.
+                    T=dat.incon[blkname][-1][-1]
+                    #enthalpy=8440.
+                enthalpy=4187.932*T+258.9018 
             gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gxa, ex=enthalpy)
             dat.add_generator(gen)
             allgens.append(gxa)
@@ -492,10 +496,10 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
         #gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gx*col.area, ex=1.0942e5)
         dat.add_generator(gen)
     
-    dat.output_times['time_increment']=2.4192E6
-    dat.output_times['time']=[1.0]+times[1:100]
-    dat.output_times['num_times_specified']=len(dat.output_times['time'])
-    dat.output_times['num_times']=200
+    #dat.output_times['time_increment']=2.4192E6
+    #dat.output_times['time']=[1.0]+times[1:]
+    #dat.output_times['num_times_specified']=len(dat.output_times['time'])
+    #dat.output_times['num_times']=200
     allgens=np.array(allgens)
     gensum=np.sum(allgens,axis=0) # <<< new >>>  old >>> sum(row[:] for row in allgens)
     tforplot=[times[0]]

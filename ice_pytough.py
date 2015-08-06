@@ -57,8 +57,8 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
             initP=atmosP*spy.power(1.-(col.surface*2.25577e-5),5.25588)  # initial presure condition - MAY NOT BE APPROPRIATE - WHAT IS THE PRESSURE UNDER THICK GLACIER AT 5000 m amsl??         
             Tmin=2.
             if blk.centre[0] <= 350.:
-                initT=50. + (hmax-blk.centre[2])*(12.5/100.)
-            elif 350.<= blk.centre[0] <= glacier_limit: 
+                initT=Tmin + (hmax-blk.centre[2])*(12.5/100.)
+            elif 350.< blk.centre[0] <= glacier_limit: 
                 initT=Tmin+(hmax-blk.centre[2])*(12.5/100.) # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
             else:
                 initT = 25.8 - (blk.centre[2]*(5.4/1000.)) + (hmax-blk.centre[2])*(12.5/100.) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
@@ -86,7 +86,7 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
             if blk.centre[2]<4800:
                 initSG=0.0
             else:
-                initSG=0.0
+                initSG=10.3
             if blk.centre[0]<10000:
                 initT=Tmin + ((np.abs(hmax-blk.centre[2])/100.0)*12.5)
             else:            
@@ -177,11 +177,12 @@ def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None):
             gen=t2generator(name=' H'+col.name,block=blkname,type='HEAT',gx=gxa, ex=None,hg=None,fg=None)#, rate=gxa, time=times, ltab=numt) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
             dat.add_generator(gen) # add generater to TOUGH2 input
             allgens.append(gxa)
-            if grid.block[blkname].centre[0] < 150. and inject is not None: # axial column
-                ixa=col.area*inject[0]
-                gen=t2generator(name=' i'+col.name,block=blkname,type='COM1',gx=ixa, ex=inject[1]) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
-                dat.add_generator(gen)
-                allinject.append(ixa)
+            if inject is not None:
+                if grid.block[blkname].centre[0] < inject[0]:
+                    ixa=col.area*inject[1]
+                    gen=t2generator(name=' i'+col.name,block=blkname,type='COM1',gx=ixa, ex=inject[2]) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
+                    dat.add_generator(gen)
+                    allinject.append(ixa)
     allgens=np.array(allgens)
     gensum=np.sum(allgens)    
     allinject=np.array(allinject)
