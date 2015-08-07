@@ -14,7 +14,7 @@ import shutil
 
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Gravpaper") # define working directory
-mod='20150806_3'
+mod='20150806_4'
 if not os.path.exists(mod):
     os.makedirs(mod)
     
@@ -113,7 +113,7 @@ print ecol
 
 # send to grid2D function to create grid and add rocktype information and define intial conditions 
 # also add permeability modifications........
-grid = ptg.grid2D(mod,geo,dat,rtypes,ecol,lpregion=lpregion) 
+grid = ptg.grid2D(mod,geo,dat,rtypes,ecol)#,lpregion=lpregion) 
 
 ptg.makeradial(geo,grid,width=width)
 

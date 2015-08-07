@@ -282,7 +282,7 @@ def grid2D(modelname,geo,dat,rocks,boundcol,lpregion=[[0,0,0],[0,0,0]],satelev=0
                 rocktype='nocp '
                 pmx=grid.rocktype[rocktype].permeability[0]*np.exp(-pmx_lamda*(hmax-blk.centre[2])) # calculating depth dependent permeability modifier
                 initP=atmosP
-                initSG=0.99
+                initSG=0.9999
                 initT=25.0
                 #send to function to assign a blocktype and initial condition and pmx.
                 rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,infvol=True)
@@ -293,14 +293,14 @@ def grid2D(modelname,geo,dat,rocks,boundcol,lpregion=[[0,0,0],[0,0,0]],satelev=0
                 rocktype='lp   '
                 pmx=grid.rocktype[rocktype].permeability[0]
                 initP=atmosP
-                initSG=10.7
+                initSG=0.
                 initT=25.0                
                 rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx)                  
             else:
                 rocktype='hp   '
                 pmx=grid.rocktype[rocktype].permeability[0]*np.exp(-pmx_lamda*(hmax-blk.centre[2]))
                 initP=atmosP
-                initSG=10.7
+                initSG=0.
                 initT=25.0                
                 rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx)
             if blk.centre[2] < satelev:
