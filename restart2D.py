@@ -15,14 +15,16 @@ import pytoughgrav as ptg
 import matplotlib.pyplot as plt
 import time
 import shutil
+from scipy import interpolate
 
 t0=time.clock()
 plt.close('all')
 #%%
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper')
 
-mod='20150804_1_var'
-basemod='20150804_1'
+mod='20150806_4_var2'
+basemod='20150806_4'
+psuedo_topsurf=False
 if not os.path.exists(mod):
     os.makedirs(mod)
 
@@ -47,6 +49,7 @@ dat.output_times['time']=[1.0]
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=500
 dat.parameter['option'][12]=2
+dat.parameter['tstop']=1.5E2*3600*24*365.32
 
 dat.parameter['print_block']='ay 40'#############################################################
 
@@ -61,8 +64,22 @@ fc=2.15803271989e-06
 #cols=[col for col in geo.columnlist]
 #count=0
 #%% run function
+
+if psuedo_topsurf:
+    topsurf=np.loadtxt('dev_files/2Dprofile.txt',delimiter='\t',skiprows=1)
+    x=topsurf[:,0]
+    z=topsurf[:,1]
+    s=interpolate.UnivariateSpline(x,z)
+    xnew=np.sort([col.centre[0] for col in geo.columnlist])
+    znew=s(np.sort(xnew))
+    plt.figure()
+    plt.plot(x,z,xnew,znew)
+    topsurf=np.vstack((xnew,znew)).T
+
 #allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,elev_m=fm,elev_c=fc,season_bias=0.7,new_rand=0.5)
-allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,ts=rech,elev_m=fm,elev_c=fc,season_bias=0.7)
+allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,
+                                           ts=rech,elev_m=fm,elev_c=fc,
+                                           season_bias=0.7,psuedo_elev=400.0)
 #
 #%% write files
 geo.write(mod+'/grd.dat') 

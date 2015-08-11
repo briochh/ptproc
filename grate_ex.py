@@ -17,7 +17,7 @@ import time
 plt.close('all')
 batch_or_straight='str' ########### I N P U T ######################### 
 save=True ########### I N P U T #########################
-num=5
+nums=[1,2,3,4,5,6]
 
 def anagrams(word):
     """ Generate all of the anagrams of a word. """ 
@@ -41,9 +41,14 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150304_1_rad_main' ########### I N P U T #########################
+    mod='20150806_1_var' ########### I N P U T #########################
 
-infile='axsym_int_microgal'+str(num)+'.dat' #'gravdiff1.dat')  ########### I N P U T #########################
+intype='' ########### I N P U T #########################
+if intype is 'rel':
+    infiles=['gravdiff'+str(n)+'.dat' for n in nums]#'axsym_int_microgal'+str(num)+'.dat' #'gravdiff1.dat')  ########### I N P U T #########################
+else:
+    infiles=['axsym_int_microgal'+str(n)+'.dat' for n in nums]#'axsym_int_microgal'+str(num)+'.dat' #'gravdiff1.dat')  ########### I N P U T #########################
+
 input_times='yrs' #yrs ########### I N P U T #########################
 windows=[2,5,10]  ########### I N P U T #########################
 
@@ -53,10 +58,9 @@ if not batch:
     t0=time.clock()
     print 'running gravrates in straight mode (',batch_or_straight,')'
     print 'model=',mod
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/'+mod+'/results')
-    indata=np.loadtxt(infile)
-    mod=mod+str(num)
-    ptg.grate(mod,indata,windows,input_in=input_times,save=save)
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper/'+mod.split('_v')[0]+'/'+mod+'/results')
+    #mod=mod+str(num)
+    ptg.grate(mod,infiles,windows,input_in=input_times,save=save, intype=intype)
 
 
 
@@ -84,7 +88,7 @@ if batch:
            os.chdir(mod+'/main/results')
         else:
            os.chdir(mod+'/results')
-        indata=np.loadtxt(infile)
+       # indata=np.loadtxt(infile)
         output=ptg.grate(mod,indata,windows,input_in=input_times,save=save,fall=fall,fallmax=fallmax)
     fall.close()
     fallmax.close()

@@ -427,7 +427,8 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,min
     
 def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/2Ddev/rand.dat",season_bias=0.65,length=100,
                  wavelength=1,maxlength=3e5,new_rand=None,constant=7.7354e-6,
-                 elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0942e5):
+                 elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0942e5,
+                 psuedo_elev=None,psuedo_topsurf=None):
     """define time dependent generation rate for recharge"""
     dat.clear_generators()
     yrsec=3600*24*365.25
@@ -473,17 +474,25 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
         if elev_m is None:
             gx=constant
         else:
-            gx=(grid.block[blkname].centre[2]*fm)+fc
+            if psuedo_elev is None:
+                if psuedo_topsurf is None:
+                    elev=grid.block[blkname].centre[2]
+                else:
+                    ind=psuedo_topsurf[:,0].tolist().index(col.centre[0])
+                    elev=psuedo_topsurf[ind,1]                
+            else:
+                elev=psuedo_elev
+            gx=(elev*fm)+fc
         if gx < mingen: gx=mingen
         # for elevation dependant recharge!
         if knownts:
             for month in ts:
-                gxc=gxc+[((grid.block[blkname].centre[2]*fm)+(fc))*month[0]]
+                gxc=gxc+[((elev*fm)+(fc))*month[0]]
         else:
             for i in xrange(0,numt-3,2):
-                highgx=((1+mult)*((grid.block[blkname].centre[2]*fm)+(fc)))*ts[i/2]
+                highgx=((1+mult)*((elev*fm)+(fc)))*ts[i/2]
                 if highgx < (1+mult)*mingen: highgx=(1+mult)*mingen
-                lowgx=((1-mult)*((grid.block[blkname].centre[2]*fm)+(fc)))*ts[i/2]
+                lowgx=((1-mult)*((elev*fm)+(fc)))*ts[i/2]
                 if lowgx < (1-mult)*mingen: lowgx=(1-mult)*mingen
                 gxc=gxc+[lowgx,highgx]
     
@@ -839,7 +848,8 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
             save_obj(sat,'sat.pkl')
     return results,sat
 #%%
-def grate( modelname, in_ts, winlen=[2,5,10], save=True, input_in="yrs", fall=None, fallmax=None ):
+def grate( modelname, infiles, winlen=[2,5,10], save=True,
+          input_in="yrs", fall=None, fallmax=None, intype='rel' ):
     """ grate( timeseries, window_length, save_option, input_in )\n
     Calculate and plot simulated rates of gravity change. 
     """
@@ -855,95 +865,101 @@ def grate( modelname, in_ts, winlen=[2,5,10], save=True, input_in="yrs", fall=No
     plottimes={}
     windg={}
     yrsec=3600*24*365.25
-    if input_in is 'yrs': in_ts[:,0]=in_ts[:,0]*yrsec
-    for win in winlen:
-        n=0
-        plott=np.empty(len(in_ts))
-        dy=np.empty(len(in_ts))
-        yrdg=np.empty(len(in_ts)) 
-        for t,g in in_ts:
-            te=t+win*yrsec 
-            i=bisect.bisect(in_ts[:,0], te)
-            if i == len(in_ts):
-                dy[n] = in_ts[i-1,1]+((te-in_ts[i-1,0])*(in_ts[i-1,1]-in_ts[i-2,1])/(in_ts[i-1,0]-in_ts[i-2,0]))
-            else:
-                dy[n]=in_ts[i-1,1]+((in_ts[i,1]-in_ts[i-1,1])*(te-in_ts[i-1,0])/(in_ts[i,0]-in_ts[i-1,0]))
-            yrdg[n]=dy[n]-g
-            plott[n]=(t+win*yrsec/2)
-            n+=1
-        plottimes['win_'+str(win)]=plott
-        windg['win_'+str(win)]=yrdg
-    
-    #times=plott/yrsec
+    num=1 
+    for infile in infiles:
+        in_ts=np.loadtxt(infile)
+        if input_in is 'yrs': in_ts[:,0]=in_ts[:,0]*yrsec
+        for win in winlen:
+            n=0
+            plott=np.empty(len(in_ts))
+            dy=np.empty(len(in_ts))
+            yrdg=np.empty(len(in_ts)) 
+            for t,g in in_ts:
+                te=t+win*yrsec 
+                i=bisect.bisect(in_ts[:,0], te)
+                if i == len(in_ts):
+                    dy[n] = in_ts[i-1,1]+((te-in_ts[i-1,0])*(in_ts[i-1,1]-in_ts[i-2,1])/(in_ts[i-1,0]-in_ts[i-2,0]))
+                else:
+                    dy[n]=in_ts[i-1,1]+((in_ts[i,1]-in_ts[i-1,1])*(te-in_ts[i-1,0])/(in_ts[i,0]-in_ts[i-1,0]))
+                yrdg[n]=dy[n]-g
+                plott[n]=(t+win*yrsec/2)
+                n+=1
+            plottimes['win_'+str(win)]=plott
+            windg['win_'+str(win)]=yrdg
         
-    #im1=plt.figure()
-    #plt.plot(times,yrdg)
-    #plt.ylabel(r'$\Delta g$ (microgal)/'+str(win)+'yr')
-    #plt.xlabel('Time (years)')
-    #plt.axis([0.0, 110,None,None])
-    #
-    #im1.savefig('mugal_per_'+str(win)+'yr.pdf')  
-    
-    x = in_ts[:,0]/yrsec
-    y = in_ts[:,1]
-    f = interp1d(x, y)
-    #f2 = interp1d(x, y, kind='cubic')
-    
-    
-    
-    xnew = np.linspace(x.min(), x.max(), 100000)
-    ynew=f(xnew)
-    dgbydt=np.gradient(ynew,np.diff(xnew)[0])
-    
-    output=np.array([['peryear',dgbydt.min(),dgbydt.max()]])
-    
-    im2, axarr=plt.subplots(2,sharex=True)
-    axarr[0].tick_params(axis='both',labelsize=18)
-    axarr[1].tick_params(axis='both',labelsize=18)
-    
-    data, =axarr[0].plot(x,y,'-',label='data',linewidth=2)
-    #interp, = plt.plot(xnew,f(xnew),'b-',label='linear')
-    axarr[0].set_ylabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
-    #plt.xlabel('Time (years)') 
-    #ax2=plt.twinx()
-    color_cycle=axarr[1]._get_lines.color_cycle
-    next(color_cycle)
-    #grad, = axarr[1].plot(xnew,dgbydt,'-',label='gradient', color='0.6' )
-    #plt.legend(loc='best')
-    leghand=[data]#,grad]
-    leglab=['data']#,'$\Delta g$/yr']
-    for win in winlen:
-        temp=axarr[1].plot( plottimes['win_'+str(win)]/yrsec,windg['win_'+str(win)],'-', markersize=12,label=r'$\Delta g$/'+str(win)+'yrs',linewidth=2)
-        leghand=leghand+temp
-        leglab=leglab+[r'$\Delta g$/'+str(win)+'yrs']
-        output=np.concatenate((output,[[win,windg['win_'+str(win)].min(),windg['win_'+str(win)].max()]]))
-    axarr[1].set_ylabel(r'$\Delta g$ per time ($\mu$gal/time)',fontsize=18)
-    plt.xlabel('Time (years)',fontsize=18)    
-    data.axes.legend(leghand,leglab,bbox_to_anchor=(0., -0.05, 1., .202), loc='upper center',
-           ncol=4, mode="expand", borderaxespad=0.,fontsize=18)
-    plt.axis([0.0, 100,None,None])
-    
-    plt.show()
-    
-    
-    if save:
-           im2.savefig(mod+'_mugal_all_per_yr.pdf')
-           np.savetxt(mod+'_minmaxs.txt',output,fmt='%s')
-           if fall is not None:           
-               fall.write('modelname = '+str(mod)+ '\n'
-               'byyear \t gradmin \t gradmax \n')
-               np.savetxt(fall,output,fmt='%s',delimiter='\t', newline='\n')
-               fall.write('\n')
-           if fallmax is not None:
-               fallmax.write(str(mod)+'\t'+str(np.max(np.abs([float(i) for i in output[0][1:]])))+'\t'+str(np.max(np.abs([float(i) for i in output[1][1:]])))+'\t'+str(np.max(np.abs([float(i) for i in output[2][1:]])))+'\t'+str(np.max(np.abs([float(i) for i in output[3][1:]])))+'\n')
-           #f = open('resultxt_'+str(wellno)+'test.txt','w')
-    return output               
+        #times=plott/yrsec
+            
+        #im1=plt.figure()
+        #plt.plot(times,yrdg)
+        #plt.ylabel(r'$\Delta g$ (microgal)/'+str(win)+'yr')
+        #plt.xlabel('Time (years)')
+        #plt.axis([0.0, 110,None,None])
+        #
+        #im1.savefig('mugal_per_'+str(win)+'yr.pdf')  
+        
+        x = in_ts[:,0]/yrsec
+        y = in_ts[:,1]
+        f = interp1d(x, y)
+        #f2 = interp1d(x, y, kind='cubic')
+        
+        
+        
+        xnew = np.linspace(x.min(), x.max(), 100000)
+        ynew=f(xnew)
+        dgbydt=np.gradient(ynew,np.diff(xnew)[0])
+        
+        output=np.array([['peryear',dgbydt.min(),dgbydt.max()]])
+        
+        im2, axarr=plt.subplots(2,sharex=True)
+        axarr[0].tick_params(axis='both',labelsize=18)
+        axarr[1].tick_params(axis='both',labelsize=18)
+        
+        data, =axarr[0].plot(x,y,'-',label='data',linewidth=2)
+        #interp, = plt.plot(xnew,f(xnew),'b-',label='linear')
+        axarr[0].set_ylabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
+        #plt.xlabel('Time (years)') 
+        #ax2=plt.twinx()
+        color_cycle=axarr[1]._get_lines.color_cycle
+        next(color_cycle)
+        #grad, = axarr[1].plot(xnew,dgbydt,'-',label='gradient', color='0.6' )
+        #plt.legend(loc='best')
+        leghand=[data]#,grad]
+        leglab=['data']#,'$\Delta g$/yr']
+        for win in winlen:
+            temp=axarr[1].plot( plottimes['win_'+str(win)]/yrsec,windg['win_'+str(win)],'-', markersize=12,label=r'$\Delta g$/'+str(win)+'yrs',linewidth=2)
+            leghand=leghand+temp
+            leglab=leglab+[r'$\Delta g$/'+str(win)+'yrs']
+            output=np.concatenate((output,[[win,windg['win_'+str(win)].min(),windg['win_'+str(win)].max()]]))
+        axarr[1].set_ylabel(r'$\Delta g$ per time ($\mu$gal/time)',fontsize=18)
+        plt.xlabel('Time (years)',fontsize=18)    
+        plt.axis([0.0, 100,None,None])
+        
+        plt.show()
+        data.axes.legend(leghand,leglab,bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+               ncol=4, mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
+        
+        if save:
+               im2.savefig(mod+'_'+str(num)+'_'+intype+'grate.pdf')
+               np.savetxt(mod+'_'+str(num)+'_'+intype+'_grate_minmaxs.txt',output,fmt='%s')
+               if fall is not None:           
+                   fall.write('modelname = '+str(mod)+ '\n'
+                   'byyear \t gradmin \t gradmax \n')
+                   np.savetxt(fall,output,fmt='%s',delimiter='\t', newline='\n')
+                   fall.write('\n')
+               if fallmax is not None:
+                   fallmax.write(str(mod)+'\t'+str(np.max(np.abs([float(i) for i in output[0][1:]])))+'\t'+str(np.max(np.abs([float(i) for i in output[1][1:]])))+'\t'+str(np.max(np.abs([float(i) for i in output[2][1:]])))+'\t'+str(np.max(np.abs([float(i) for i in output[3][1:]])))+'\n')
+               #f = open('resultxt_'+str(wellno)+'test.txt','w')
+        num=num+1
+    #return output               
 
-def relgrav(reference_modelname,test_modelname,reference_ts='axsym_int_microgal5.dat',test_ts=['axsym_int_microgal1.dat'],save=True,time_in='yrs'):
+def relgrav(reference_modelname,test_modelname=None,reference_ts='axsym_int_microgal5.dat',test_ts=['axsym_int_microgal1.dat'],save=True,time_in='yrs'):
     plt.close('all')    
     cd=os.getcwd()   
     ref_mod=reference_modelname
-    mod=test_modelname  
+    if test_modelname is None:
+        mod=ref_mod
+    else:
+        mod=test_modelname  
     #ref_grav=reference_ts
     
     os.chdir(ref_mod+'/results')
@@ -995,7 +1011,7 @@ def relgrav(reference_modelname,test_modelname,reference_ts='axsym_int_microgal5
                 
         plt.plot(times/yrsec,gravdif,linewidth=2,label='Relative gravity') 
         plt.xlim((0,times.max()/yrsec))
-        plt.ylim((-70,70))
+        #plt.ylim((-70,70))
         plt.ylabel(r'$\Delta g$ (microgal)',fontsize=18)
         plt.xlabel('Time (years)',fontsize=18)  
         plt.tick_params(axis='both',labelsize=18)
