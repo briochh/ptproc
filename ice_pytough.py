@@ -65,12 +65,12 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
             if initT <= Tmin: initT=Tmin
             #initT=25.8 - (hmax*(5.4/1000.)) + (hmax-blk.centre[2]*15./100.) 150.+(-0.0225*blk.centre[0])
             if (hpregion is not None and 'hp   ' in grid.rocktype.keys()):
-                for hpr in hpregion.values():
+                for rt,hpr in hpregion.iteritems():
                     if (blk.centre[2] > hpr[0][2] and 
                     blk.centre[2] <= hpr[1][2] and 
                     blk.centre[0] > hpr[0][0] and 
                     blk.centre[0] <= hpr[1][0]): #if in hp region
-                        rocktype='hp   ' # this allows a different pmx for atmos above highperm
+                        rocktype=rt#'hp   ' # this allows a different pmx for atmos above highperm
             initSG=0.999 # initial gas saturation
             infvol=False # already given 1e50 volume
 #            if topsurf is not None:
@@ -101,12 +101,12 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
                 blk.centre[0] <= lpregion[1][0]): # if in lp region
                 rocktype='lp   '     
             if (hpregion is not None and 'hp   ' in grid.rocktype.keys()):
-                for hpr in hpregion.values():
+                for rt,hpr in hpregion.iteritems():
                     if (blk.centre[2] > hpr[0][2] and 
                     blk.centre[2] <= hpr[1][2] and 
                     blk.centre[0] > hpr[0][0] and 
                     blk.centre[0] <= hpr[1][0]): #if in hp region
-                        rocktype='hp   '
+                        rocktype=rt#'hp   '
             if (heatsource is not None and 
                 blk.centre[2] > heatsource[0][2] and 
                 blk.centre[2] <= heatsource[1][2] and 
