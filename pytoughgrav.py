@@ -382,7 +382,7 @@ def makeradial(geo,grid,width=1.):
         col.area=2*np.pi*col.centre[0]*col.area/width
     geo.radial=True
            
-def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0492e5):
+def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0492e5,cfix=[350.,50.]):
     f = open(mod+'/genertot.txt','w')
     f.write('Model = '+mod+'\n')
     allgens=[]
@@ -396,10 +396,10 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,min
             gxa=col.area*gx
             if enthalpy is "var" or etype is 'var':
                 etype='var'
-                if col.centre[0] <= 350.:
-                    T=50.
-                #    enthalpy=209.0e3
-                else: 
+                if cfix is not None and col.centre[0] <= cfix[0]:
+                    T=cfix[1]
+                    #    enthalpy=209.0e3
+                else:
                     T=dat.incon[blkname][-1][-1]
                     #enthalpy=8440.
                 enthalpy=4187.932*T+258.9018 
