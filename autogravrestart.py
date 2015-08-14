@@ -44,6 +44,10 @@ basemod=args.base
 number=args.number
 mod=basemod+'_var'+number
 pseudo_topsurf=args.topsurf_flag
+if args.pseudo_elev is not None:
+    pseudo_elev=float(args.pseudo_elev)
+else:
+    pseudo_elev=None
 if not os.path.exists(mod):
     os.makedirs(mod)
 
@@ -99,7 +103,7 @@ else:
 
 allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,
                                            ts=rech,elev_m=fm,elev_c=fc,
-                                           season_bias=0.7,pseudo_elev=float(args.pseudo_elev),pseudo_topsurf=topsurf)
+                                           season_bias=0.7,pseudo_elev=pseudo_elev,pseudo_topsurf=topsurf)
 #
 #%% write files
 geo.write(mod+'/grd.dat') 
