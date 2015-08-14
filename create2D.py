@@ -14,13 +14,14 @@ import shutil
 
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Gravpaper") # define working directory
-mod='20150806_4'
+mod='20150814_1'
+pseudo_topsurf=True
 if not os.path.exists(mod):
     os.makedirs(mod)
     
 width=10.    
-zcells=[10]*34+[2]*80+[10]*19+[2]*30+[10]*5 # 800 m (down to 50 m bsl) # [2]*50+[10]*20+[2]*55+[10]*4 # 400 m
-surf=ptg.topsurf('dev_files/2Dprofile.txt',delim='\t',headerlines=1,width=width)
+zcells=[2]*50+[10]*20+[2]*55+[10]*4 # 400 m # [10]*34+[2]*80+[10]*19+[2]*30+[10]*5 # 800 m (down to 50 m bsl) # 
+surf=ptg.topsurf('dev_files/flatprofile.txt',delim='\t',headerlines=1,width=width)
 modelorigin=(0,0)#(586034.886,1852660.465)
 
 ## define well locations
@@ -130,7 +131,20 @@ mingen=2.0e-7 # with fc positive shouldnt be used......
 
 # define constant generation based on elevation relationship.....
 #ptg.gen_constant(mod,geo,grid,dat,elev_m=fm,elev_c=fc,mingen=mingen)
-ptg.gen_constant(mod,geo,grid,dat,elev_m=fm,elev_c=fc,mingen=mingen)
+if pseudo_topsurf:
+    topsurf=np.loadtxt('dev_files/2Dprofile.txt',delimiter='\t',skiprows=1)
+    x=topsurf[:,0]
+    z=topsurf[:,1]
+    s=interpolate.UnivariateSpline(x,z)
+    xnew=np.sort([col.centre[0] for col in geo.columnlist])
+    znew=s(np.sort(xnew))
+    plt.figure()
+    plt.plot(x,z,xnew,znew)
+    topsurf=np.vstack((xnew,znew)).T
+    shutil.copy('dev_files/2Dprofile.txt',mod+'/')
+
+ptg.gen_constant(mod,geo,grid,dat,elev_m=fm,elev_c=fc,mingen=mingen,
+                 pseudo_elev=None, pseudo_topsurf=topsurf)
        
 ## write vtk of input information
 grid.write_vtk(geo,mod+'/inparam.vtk')

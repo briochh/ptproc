@@ -382,11 +382,15 @@ def makeradial(geo,grid,width=1.):
         col.area=2*np.pi*col.centre[0]*col.area/width
     geo.radial=True
            
-def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0492e5,cfix=[350.,50.]):
+def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,
+                 elev_m=None,elev_c=None,mingen=2.0e-7,
+                 enthalpy=1.0492e5,cfix=[350.,50.],
+                 pseudo_elev=None,pseudo_topsurf=None):
     f = open(mod+'/genertot.txt','w')
     f.write('Model = '+mod+'\n')
     allgens=[]
     cols=[col for col in geo.columnlist]
+    etype=None
     if elev_m is None:
         f.write('Constant generation ='+str(constant)+' kg/s/m2\n')
         for col in cols:
@@ -402,7 +406,9 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,min
                 else:
                     T=dat.incon[blkname][-1][-1]
                     #enthalpy=8440.
-                enthalpy=4187.932*T+258.9018 
+            else: 
+                T=25.
+            enthalpy=4187.932*T+258.9018 
             gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gxa, ex=enthalpy)
             dat.add_generator(gen)
             allgens.append(gxa)
@@ -412,10 +418,30 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,min
         for col in cols:
             lay=geo.column_surface_layer(col)
             blkname=geo.block_name(lay.name,col.name)
-            gx=(grid.block[blkname].centre[2]*elev_m)+elev_c
+            if pseudo_elev is None:
+                if pseudo_topsurf is None:
+                    elev=grid.block[blkname].centre[2]
+                else:
+                    ind=pseudo_topsurf[:,0].tolist().index(col.centre[0])
+                    elev=pseudo_topsurf[ind,1]                
+            else:
+                elev=pseudo_elev
+            gx=(elev*elev_m)+elev_c
+            #gx=(grid.block[blkname].centre[2]*elev_m)+elev_c
             if gx < mingen:
                 gx=mingen
             gxa=col.area*gx
+            if enthalpy is "var" or etype is 'var':
+                etype='var'
+                if cfix is not None and col.centre[0] <= cfix[0]:
+                    T=cfix[1]
+                    #    enthalpy=209.0e3
+                else:
+                    T=dat.incon[blkname][-1][-1]
+                    #enthalpy=8440.
+            else: 
+                T=25.
+            enthalpy=4187.932*T+258.9018 
             gen=t2generator(name=' q'+col.name,block=blkname,type='COM1', gx=gxa, ex=enthalpy)
             dat.add_generator(gen)
             allgens.append(gxa)
@@ -428,7 +454,7 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,elev_m=None,elev_c=None,min
 def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/2Ddev/rand.dat",season_bias=0.65,length=100,
                  wavelength=1,maxlength=3e5,new_rand=None,constant=7.7354e-6,
                  elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0942e5,
-                 psuedo_elev=None,psuedo_topsurf=None):
+                 pseudo_elev=None,pseudo_topsurf=None):
     """define time dependent generation rate for recharge"""
     dat.clear_generators()
     yrsec=3600*24*365.25
@@ -439,7 +465,7 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     fc=elev_c
     mult=season_bias
     knownts=False    
-    
+
     allgens=[]
     if new_rand<>None:
         ts=[]
@@ -474,14 +500,14 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
         if elev_m is None:
             gx=constant
         else:
-            if psuedo_elev is None:
-                if psuedo_topsurf is None:
+            if pseudo_elev is None:
+                if pseudo_topsurf is None:
                     elev=grid.block[blkname].centre[2]
                 else:
-                    ind=psuedo_topsurf[:,0].tolist().index(col.centre[0])
-                    elev=psuedo_topsurf[ind,1]                
+                    ind=pseudo_topsurf[:,0].tolist().index(col.centre[0])
+                    elev=pseudo_topsurf[ind,1]                
             else:
-                elev=psuedo_elev
+                elev=pseudo_elev
             gx=(elev*fm)+fc
         if gx < mingen: gx=mingen
         # for elevation dependant recharge!

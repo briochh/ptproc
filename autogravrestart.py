@@ -21,10 +21,12 @@ t0=time.clock()
 plt.close('all')
 
 #%%
-parser = argparse.ArgumentParser(description='Prepare perturbation model')
+parser = argparse.ArgumentParser(description='Prepare restart model')
 parser.add_argument('-b','--base', help='basemodel name',required=True)
 parser.add_argument('-l','--location', help='location',required=False, default='.')
 parser.add_argument('-n','--number',help='var number',required=False,default='')
+parser.add_argument('-t','--topsurf_flag', help='use pseudo top surface for recharge',action='store_true')
+parser.add_argument('-e','--pseudo_elev', help='pseusdo constant elevation',required=False,default=None)
 #parser.add_argument('-heat','--heatsource',help='heat source region for ptb',  nargs='+', type=int, required=False)
 #parser.add_argument('-fr','--fluidsource',help='mass source injection?',required=False, default=False)
 #parser.add_argument('-fr','--fluidsource',help='mass source injection?',required=False, default=False)
@@ -40,6 +42,7 @@ os.chdir(args.location)
 basemod=args.base
 number=args.number
 mod=basemod+'_var'+number
+pseudo_topsurf=args.topsurf_flag
 if not os.path.exists(mod):
     os.makedirs(mod)
 
@@ -80,7 +83,22 @@ fc=2.15803271989e-06
 #count=0
 #%% run function
 #allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,elev_m=fm,elev_c=fc,season_bias=0.7,new_rand=0.5)
-allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,ts=rech,elev_m=fm,elev_c=fc,season_bias=0.7)
+if pseudo_topsurf:
+    topsurf=np.loadtxt('2Dprofile.txt',delimiter='\t',skiprows=1)
+    x=topsurf[:,0]
+    z=topsurf[:,1]
+    s=interpolate.UnivariateSpline(x,z)
+    xnew=np.sort([col.centre[0] for col in geo.columnlist])
+    znew=s(np.sort(xnew))
+    plt.figure()
+    plt.plot(x,z,xnew,znew)
+    topsurf=np.vstack((xnew,znew)).T
+else:
+    topsurf=None
+
+allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,
+                                           ts=rech,elev_m=fm,elev_c=fc,
+                                           season_bias=0.7,pseudo_elev=args.pseudo_elev,pseudo_topsurf=None)
 #
 #%% write files
 geo.write(mod+'/grd.dat') 

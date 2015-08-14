@@ -20,15 +20,16 @@ import pytoughgrav as ptg
 plt.close('all')
 
 save='yes'
-parent='20150806_4'
-ref_mod='20150806_4_var1'
+parent=''
+ref_mod='20150806_4_var2'
+num=6
 ref_ts='axsym_int_microgal'+str(num)+'.dat'
 mod=ref_mod
 t0=time.clock()
 
 tss=['axsym_int_microgal'+str(num)+'.dat' for num in np.arange(1,7)]
 
-num=6
+
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper/'+parent)
 
 ptg.relgrav(ref_mod,mod,ref_ts,tss)

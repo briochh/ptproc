@@ -17,7 +17,7 @@ import time
 plt.close('all')
 batch_or_straight='str' ########### I N P U T ######################### 
 save=True ########### I N P U T #########################
-nums=[1,2,3,4,5,6]
+nums=[1,2,3,4,5,6] ########### I N P U T #########################
 
 def anagrams(word):
     """ Generate all of the anagrams of a word. """ 
@@ -41,7 +41,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150806_1_var' ########### I N P U T #########################
+    mod='20150806_2_var1' ########### I N P U T #########################
 
 intype='' ########### I N P U T #########################
 if intype is 'rel':

@@ -24,7 +24,7 @@ os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper')
 
 mod='20150806_4_var2'
 basemod='20150806_4'
-psuedo_topsurf=False
+pseudo_topsurf=False
 if not os.path.exists(mod):
     os.makedirs(mod)
 
@@ -65,7 +65,7 @@ fc=2.15803271989e-06
 #count=0
 #%% run function
 
-if psuedo_topsurf:
+if pseudo_topsurf:
     topsurf=np.loadtxt('dev_files/2Dprofile.txt',delimiter='\t',skiprows=1)
     x=topsurf[:,0]
     z=topsurf[:,1]
@@ -79,7 +79,7 @@ if psuedo_topsurf:
 #allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,elev_m=fm,elev_c=fc,season_bias=0.7,new_rand=0.5)
 allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,
                                            ts=rech,elev_m=fm,elev_c=fc,
-                                           season_bias=0.7,psuedo_elev=400.0)
+                                           season_bias=0.7,pseudo_elev=400.0)
 #
 #%% write files
 geo.write(mod+'/grd.dat') 
