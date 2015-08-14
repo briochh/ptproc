@@ -98,7 +98,7 @@ else:
 
 allgens,xs,zs,Areas,times=ptg.gen_variable(mod,geo,grid,dat,
                                            ts=rech,elev_m=fm,elev_c=fc,
-                                           season_bias=0.7,pseudo_elev=args.pseudo_elev,pseudo_topsurf=None)
+                                           season_bias=0.7,pseudo_elev=float(args.pseudo_elev),pseudo_topsurf=None)
 #
 #%% write files
 geo.write(mod+'/grd.dat') 
