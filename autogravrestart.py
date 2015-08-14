@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import time
 import shutil
 import argparse
+from scipy import interpolate
 
 t0=time.clock()
 plt.close('all')
