@@ -41,7 +41,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150806_2_var1' ########### I N P U T #########################
+    mod='20150814_2_var1' ########### I N P U T #########################
 
 intype='' ########### I N P U T #########################
 if intype is 'rel':
