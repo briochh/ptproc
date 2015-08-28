@@ -20,8 +20,8 @@ import pytoughgrav as ptg
 plt.close('all')
 
 save='yes'
-parent=''
-ref_mod='20150806_4_var2'
+parent='20150814_2'
+ref_mod='20150814_2_var1'
 num=6
 ref_ts='axsym_int_microgal'+str(num)+'.dat'
 mod=ref_mod
