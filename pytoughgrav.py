@@ -548,10 +548,11 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
     ax1.set_ylabel(r'Generation rate (kg/s/m$^2$)')
     ax1.set_xlabel('Time (years)')
-    ax2=ax1.twinx()
+    ax2=plt.twinx(ax1)
     print max(gforplot/Area)
     ax2.plot()
-    ax2.set_ylim(0,max(gforplot/Area)*3600*24)   
+    ax1.set_xlim(0,100) 
+    ax2.set_ylim(ax1.get_ylim()[0],ax1.get_ylim()[1]*3600*24)#(0,max(gforplot/Area)*3600*24)      
     ax2.set_ylabel(r'Equivalent recharge rate (mm/d)')
     
     plt.savefig(mod+'/rech.pdf')
