@@ -21,7 +21,7 @@ import pytoughgrav as ptg
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150811_1'
+mod='Cota20150819_1'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -188,6 +188,7 @@ dat.parameter['print_interval']=100 # print (output) frequency to flow.out
 dat.parameter['timestep']=[1.0]#[1.0,1000.0] # initial timestep?
 dat.parameter['upstream_weight']=1.0
 dat.parameter['option'][11]=0 #mobilities are upstream weighted, permeability is harmonic weighted
+dat.momop['option'][10]=1
 dat.output_times['time']=[1.0,3.1558e+08,3.1558e+09,3.1558e+10]#,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=len(dat.output_times['time'])
@@ -198,7 +199,7 @@ dat.output_times['time_increment']= 500*yrsec
 #dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,0.5e-3,1.67e6])#1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,2e-3,2e6])#1.67e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var')#enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   

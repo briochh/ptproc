@@ -23,7 +23,7 @@ os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi')
 
 
 basemod='Cota20150811_1'
-mod=basemod+'_ptb'
+mod=basemod+'_ptb2'
 if not os.path.exists(mod):
     os.makedirs(mod)
     
@@ -54,7 +54,7 @@ dat.parameter['tstop']=5E3*yrsec
 dat.clear_generators()
 heat_flux=0.24
 for blk in grid.blocklist[0:]: blk.hotcell=False
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,2.],[10000.,0.24]]},inject=[150,1.0e-3,1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,2.],[10000.,0.24]]},inject=[150,2.0e-3,1.67e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var',cfix=[350,80.0])#enthalpy=8440.)
 
 

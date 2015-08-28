@@ -20,12 +20,12 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Cota20150804_4'
+model='Cota20150810_1'
 yrsec=365.25*24*3600
 models=[model,model+'_ptb']#,model+'_rtn']
 times={}
 ts=np.zeros(1)
-glaclim=[350.,2500]
+glaclim=[0.,2500]
 if save:
     os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+model)
     if not os.path.exists('stitched'): 
@@ -39,7 +39,7 @@ for flow in flows:
     data={}
     for mod in models:
         print 'model=',mod
-        #os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/')
+        os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/')
         os.chdir(mod)
         if ts[0]==0.0: # if first time through ts starts with 0
             times[str(mod)]=ptg.load_obj('results/time.pkl')
