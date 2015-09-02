@@ -127,7 +127,7 @@ wells=np.hstack((np.transpose([wellx]),np.transpose([welly])))
 t2=time.clock()
 t=t2-t0
 print 'time2setup=',t
-results,sat=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,sat=sat,tough2_input=dat, geom_data=geo, maxtime=110)
+results,sat=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,sat=sat,tough2_input=dat, geom_data=geo, maxtime=100)
 
 #%%################################################################
 ######################### BATCH MODE ############################
