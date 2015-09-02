@@ -546,10 +546,11 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
     ax1.set_ylabel(r'Generation rate (kg/s/m$^2$)')
     ax1.set_xlabel('Time (years)')
-    ax2=ax1.twinx()
+    ax2=plt.twinx(ax1)
     print max(gforplot/Area)
     ax2.plot()
-    ax2.set_ylim(0,max(gforplot/Area)*3600*24)   
+    ax1.set_xlim(0,100) 
+    ax2.set_ylim(ax1.get_ylim()[0],ax1.get_ylim()[1]*3600*24)#(0,max(gforplot/Area)*3600*24)      
     ax2.set_ylabel(r'Equivalent recharge rate (mm/d)')
     
     plt.savefig(mod+'/rech.pdf')
@@ -575,10 +576,12 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     elif geom_data is None:
         raise TypeError('data needs to be type mulgrid. Currently None found. You idiot')    
     else: geo=geom_data
-    if type(results) is not t2listing and results is not None:
+    if type(results) is not t2listing and results is not None and results != []:
         raise TypeError('results needs to be type t2listing. Type ' + str(type(results)) + ' found. You idiot')
     elif results is None:
         print('No Results files (flow.out) passed. please read flow2.out and pass to ptg.readres')
+    elif results == []:
+        print('Results is blank.... will attempt to continue with just sat')
         
 
     
@@ -603,9 +606,10 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     cen=np.array([]).reshape(0,3)
     for blk in grid.blocklist[1:]:
         if blk.volume >= 1.0E50:
-            dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E50]))
+            blk.thickness=blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E50
             #dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area/1.0E47]))
-        else: dz=np.concatenate((dz,[blk.volume/geo.column[geo.column_name(blk.name)].area])) # array of thickness of each block
+        else: blk.thickness=blk.volume/geo.column[geo.column_name(blk.name)].area
+        dz=np.concatenate((dz,[blk.thickness])) # array of thickness of each block
         # dz=np.concatenate((dz,[geo.layer[geo.layer_name(blk.name)].thickness])) # array of thickness of each block
         dx=np.concatenate((dx,[geo.column[geo.column_name(blk.name)].side_lengths[0]])) # array of x direction cell widths
         cen=np.concatenate((cen,[blk.centre]))
@@ -635,9 +639,12 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
     ## loop over each gravity survey point given in wellx
     wellno=0
     #maxtime=maxtime
-    outtimes=[outtime for outtime in results.times if outtime/yrsec <= maxtime]
+    if results == []:
+        outtimes=sorted([float(i) for i in sat.keys() if float(i)/yrsec <= maxtime])
+    else:
+        outtimes=[outtime for outtime in results.times if outtime/yrsec <= maxtime]
     #sat={}  # set or resest dictionary of saturations
-    
+    numtimes=len(outtimes)
     for well in wells:
         twell=time.clock()
         wellno=wellno+1
@@ -663,12 +670,13 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         print 'time4wellblk',t
         
         zp=col.surface # surface eleaviton  - denotes z elevation for gravity measurement
-        results.first() # find first timestep for listings file
+        if results != []:
+            results.first() # find first timestep for listings file
         gravt=[] # set up gravity over time list
         well_water_mass=[] # set up array for mass of water in current survey column (well), over time
         wellsl=np.array([]).reshape(len(wellblk),0) # array for saturation in well over time
         wellro=np.array([]).reshape(len(wellblk),0) # array for water density in well over time
-        
+        wellsatblk=[]#np.array([]).reshape(len(wellblk),0) 
         
         ## compute elemental contribution for each element in domain at current gravity survey location
         i=0
@@ -694,30 +702,37 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         
         # loop over results table untill desired time (in years)
         count=0
+        bougg=[0]
         for outtime in outtimes:
-            if count < results.times.size:
+            if count < numtimes:
                 t0=time.clock()
                 print('On Station %d of %d' % (wellno,len(wells)))
-                print('timestep %d out of %d (%5.2f yrs)' % (count+1,results.times.size,outtime/yrsec))
-                if str(outtime) not in sat: # for first well pull out saturation for each tstep                
+                print('timestep %d out of %d (%5.2f yrs)' % (count+1,numtimes,outtime/yrsec))
+                if str(outtime) not in sat: # for first well pull out saturation for each tstep 
                     sat[str(outtime)]=copy.copy(results.element['SL'][1:]) # pull out saturation index [0] is the atmosphere cell so no use to us                
                     results.next() # move to next timestep             
                 dg=[] # array for collecting together elemental contributions of integral method
                 twellsl=[] # array for collecting saturation in well for current timestep
                 twellrho=[] # array for collecting saturation density in well for current timestep
+                twellsatblk=[]                
                 twell_water_mass=0 # starting point for water mass in well at current timestep
                 # loop over every block for current timestep
                 i=0
                 for blk in grid.blocklist[1:]: # dont bother with atmos cell
-                    blkrho=sat[str(outtime)][i]*blk.rocktype.porosity*density # saturation density in element
+                    blksat=sat[str(outtime)][i]
+                    blkrho=blksat*blk.rocktype.porosity*density # saturation density in element
                     dg.append(comp[i]*blkrho) # gravity conribution of element 
             
                     ## For bouguer slab.....
                     #calculated saturation, saturation density and water mass in column at current timestep
                     if blk in wellblk:
                         #outd[blk.name].append(sat[i])
-                        twellsl.append([sat[str(outtime)][i]])
+                        twellsl.append([blksat])
                         twellrho.append([blkrho])
+                        if blksat > 0.8:
+                            twellsatblk.append(blk)
+                        else:
+                            twellsatblk.append('dummy')
                         #if blk is not wellblk[-1]:
                         #wellvol=wellvol+blk.volume
                         col=geo.column[geo.column_name(str(blk))]
@@ -730,10 +745,29 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
                         # wellsl=np.concatenate((wellsl,[outsl1[1]]))
                         # wellro=np.concatenate((wellro,[outsl1[1]*density*blk.rocktype.porosity]))
                     i+=1 # inrement to next element
+                # ind=twellsl.index()                
+                # satlevel=                
                 #compile array of saturation, density and water mass in current column for all timesteps
                 wellsl=np.concatenate((wellsl,twellsl),axis=1)
-                wellro=np.concatenate((wellro,twellrho),axis=1)
+                wellro=np.concatenate((wellro,twellrho),axis=1)     
+                if len(wellsatblk) == 0:
+                    wt_blk=next(i for i in twellsatblk if i != 'dummy')
+                    wt_elev=wt_blk.centre[2]+(wt_blk.thickness/2.)
+                else:
+                    wt_blk=next(i for i in twellsatblk if i != 'dummy')
+                    del_wt_elev=wt_blk.centre[2]+(wt_blk.thickness/2.)-wt_elev
+                    #wt_elev=wt_blk.centre[2]+(wt_blk.thickness/2.)
+                    porodiff=0.
+                    if del_wt_elev != 0:
+                        if del_wt_elev < 0:
+                            porodiff=np.array([[j.rocktype.porosity,j.thickness] for j,k in zip(wellsatblk[0],twellsatblk) if k != j])
+                        elif del_wt_elev > 0:
+                            porodiff=np.array([[k.rocktype.porosity,k.thickness] for j,k in zip(wellsatblk[0],twellsatblk) if k != j])
+                        porodiff=np.sum(np.multiply(porodiff[:,0],porodiff[:,-1]))/np.sum(porodiff[:,-1])    
+                    bougg.append(2*np.pi*scipy.constants.G*1e8*del_wt_elev*porodiff*density)
+                wellsatblk=wellsatblk+[twellsatblk]
                 well_water_mass.append(twell_water_mass)
+                                 
                 
                 # Total axissummetric intgral gravity due to water mass in model for current time step
                 grav=6.67e-3*sum(dg)
@@ -755,7 +789,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         #%%
         ## Plot results for current well
         t0=time.clock()
-        times=results.times[0:count]/yrsec # convert times calculted to yrs 
+        times=np.array(outtimes[0:count])/yrsec # convert times calculted to yrs 
         #gcont=ml.griddata(xs,zs,np.array(dg/xzarea)*6.67e-3,xi,zi,interp='linear')
         c=0
         dumgrid=np.empty(xi.shape)*np.NaN
@@ -788,10 +822,11 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         
         # integral gravity time series
         intgravplt=plt.figure()
-        plt.plot(results.times[0:count]/yrsec,gravt-gravt[0])
+        plt.plot(times,gravt-gravt[0])
         plt.ylabel(r'$\Delta g$ (microgal)')
         plt.xlabel('Time (years)')
         plt.axis([0.0, times.max(),None,None])
+        plt.tight_layout()
         
         # Bouguer slab estimation fomr column saturation
         im1=plt.figure()
@@ -799,6 +834,15 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         plt.ylabel(r'$\Delta g$ (microgal)')
         plt.xlabel('Time (years)')
         plt.axis([0.0, times.max(),None,None])
+        plt.tight_layout()
+        
+        # Bouguer slab estimation fomr column saturation
+        imt=plt.figure()
+        plt.plot(times,bougg)
+        plt.ylabel(r'$\Delta g$ (microgal)')
+        plt.xlabel('Time (years)')
+        plt.axis([0.0, times.max(),None,None])
+        plt.tight_layout()
         
         # column satuation over time
         T,Z=np.meshgrid(times,zlist)
@@ -833,6 +877,9 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
                    'grav (Boug) max (microgal) =' +str(microgal.max())+'\n'
                    'grav (Boug) min (microgal) =' +str(microgal.min())+'\n'
                    'Max (Boug) amplidute (grav)='+str(microgal.max()-microgal.min())+'\n'
+                   'grav (Boug WT) max (microgal) =' +str(np.max(bougg))+'\n'
+                   'grav (Boug WT) min (microgal) =' +str(np.min(bougg))+'\n'
+                   'Max (Boug WT) amplidute (grav)='+str(np.max(bougg)-np.min(bougg))+'\n'
                    'grav (int_axsym) max (microgal)='+str((gravt-gravt[0]).max())+'\n'
                    'grav (int_axsym) min (microgal)='+str((gravt-gravt[0]).min())+'\n'
                    'Max (int_axsym) amplitude (microgal)='+str((gravt-gravt[0]).max()-(gravt-gravt[0]).min())+'\n')
@@ -846,6 +893,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
            im2.savefig(mod+'_sl_t_profile'+str(wellno)+'.pdf',dpi=400)
            #im2.savefig('sl_t_profile'+str(wellno)+'.eps')
            im1.savefig(mod+'_boug'+str(wellno)+'.pdf')
+           imt.savefig(mod+'_sat_boug'+str(wellno)+'.pdf')
            intgravplt.savefig(mod+'_axsym_int_grav'+str(wellno)+'.pdf')
            #
            #savefig('sl_t_profile.pdf')
@@ -859,7 +907,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         print 'total time for well',t
         
             
-    if savevtk:
+    if savevtk and results != []:
        t0=time.clock()
        results.write_vtk(geo,mod+'_out.vtk',grid=grid,flows=True, time_unit='y')
        t1=time.clock()
@@ -870,7 +918,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
             print('sat alreay pickled')
         else:
             save_obj(sat,'sat.pkl')
-    return results,sat
+    return results,sat,wellsatblk
 #%%
 def grate( modelname, infiles, winlen=[2,5,10], save=True,
           input_in="yrs", fall=None, fallmax=None, intype='rel' ):

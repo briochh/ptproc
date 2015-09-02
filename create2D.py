@@ -11,10 +11,11 @@ from t2grids import *
 from t2data import *
 import time 
 import shutil
+from scipy import interpolate
 
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Gravpaper") # define working directory
-mod='20150814_1'
+mod='20150814_2'
 pseudo_topsurf=True
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -34,7 +35,7 @@ wellx=[50.0,500.0,1100.0,1750,2650,3200]##5.0,50.0,500,1750,2200,2650###########
 welly=[width/2.0]*len(wellx) # make y coords same length as x coords
 wells=np.hstack((np.transpose([wellx]),np.transpose([welly])))
 
-origin=([0,0,750]) # ([0,0,750])
+origin=([0,0,400]) # ([0,0,750])
 geo=ptg.geo2D( mod, length=3600, width=width, celldim=10., origin=origin,
               zcells=zcells, surface=surf, wells=wells )
 
@@ -114,7 +115,7 @@ print ecol
 
 # send to grid2D function to create grid and add rocktype information and define intial conditions 
 # also add permeability modifications........
-grid = ptg.grid2D(mod,geo,dat,rtypes,ecol)#,lpregion=lpregion) 
+grid = ptg.grid2D(mod,geo,dat,rtypes,ecol,lpregion=lpregion) 
 
 ptg.makeradial(geo,grid,width=width)
 

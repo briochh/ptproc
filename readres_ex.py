@@ -34,7 +34,7 @@ sat_fname='results/sat.pkl'
 
 
 save=True ########### I N P U T #########################
-savevtk=True ########### I N P U T #########################
+savevtk=False ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
 modelorigin=(586034.886,1852660.465)
 
@@ -69,7 +69,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150804_1_var' ########### I N P U T #########################
+    mod='20150806_2_var1' ########### I N P U T #########################
 
 
 #%%###########################################################################
@@ -78,7 +78,7 @@ if not batch:
     t0=time.clock()
     print 'running in straight mode (',batch_or_straight,')'
     print 'model=',mod
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper/'+mod)
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper/'+mod.split('_var')[0]+'/'+mod)
     if read:
         if readgeo is True: 
             print 'Reading geometry from '+ geo_fname
@@ -87,16 +87,21 @@ if not batch:
         if readdat is True: 
             print 'Reading input data from '+ dat_fname
             dat=t2data(dat_fname) 
-        if readresults is True:
-            print 'Reading results from '+ results_fname
-            results=t2listing(results_fname)
         if readsat is True: 
             if os.path.isfile(sat_fname):
                 print 'Reading saturation data from '+ sat_fname
                 sat=ptg.load_obj(sat_fname)
             else: 
                 print('CANT READ SAT FILE......Continuing with sat={}')
-                sat={}
+                sat={}                
+        if readresults is True:
+            if sat=={}:
+                print 'Reading results from '+ results_fname
+                results=t2listing(results_fname)
+            else:
+                results=[]
+            
+
                 
                 
     t1=time.clock()        
@@ -114,8 +119,9 @@ if not batch:
     t2=time.clock()
     t=t2-t0
     print 'time2setup=',t
-    results,sat=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,sat=sat,tough2_input=dat, geom_data=geo, maxtime=110)
-
+    results,sat,wellsatblk=ptg.readres(mod,wells,save=save,savevtk=savevtk,results=results,sat=sat,tough2_input=dat, geom_data=geo, maxtime=100)
+      
+       
 #%%################################################################
 ######################### BATCH MODE ############################
 if batch:

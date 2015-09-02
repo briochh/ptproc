@@ -22,8 +22,8 @@ plt.close('all')
 #%%
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper')
 
-mod='20150806_4_var2'
-basemod='20150806_4'
+mod='20150806_1_var1_fake'
+basemod='20150806_1'
 pseudo_topsurf=False
 if not os.path.exists(mod):
     os.makedirs(mod)

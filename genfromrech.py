@@ -43,7 +43,7 @@ mon,yr=dates[0,1],dates[0,2] # set start date
 
 c=0 # set counter
 y=0
-area=200.0*200.0*2594 # for conversion into per m2 
+area=200.0*200.0*2594 # for conversion into per m2 - 2594 is the number of land cells in recharge model 
 
 mony=np.ascontiguousarray(dates[:,1:])
 nummonths=unique_rows(mony).shape[0] # unique rows function need a contiguous array
