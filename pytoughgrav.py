@@ -237,8 +237,6 @@ def grid1D( modelname, basefile, parameter, perm=5.0e-13, poro=0.34, rp={'type':
 def geo2D( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
           origin = ([0,0,0]), xcells = None,  zcells = None,
           surface = None, wells = None, atmos_type=0, min_thick=2.0):
-    """ Function to generate a 2D grid tough2 grid."""
-    mod=modelname
     if xcells is None:
         xcells=[celldim]*int((length/celldim))
         
