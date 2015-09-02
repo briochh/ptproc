@@ -828,6 +828,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         plt.ylabel(r'$\Delta g$ (microgal)')
         plt.xlabel('Time (years)')
         plt.axis([0.0, times.max(),None,None])
+        plt.tight_layout()
         
         # Bouguer slab estimation fomr column saturation
         im1=plt.figure()
@@ -835,6 +836,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         plt.ylabel(r'$\Delta g$ (microgal)')
         plt.xlabel('Time (years)')
         plt.axis([0.0, times.max(),None,None])
+        plt.tight_layout()
         
         # Bouguer slab estimation fomr column saturation
         imt=plt.figure()
@@ -842,6 +844,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         plt.ylabel(r'$\Delta g$ (microgal)')
         plt.xlabel('Time (years)')
         plt.axis([0.0, times.max(),None,None])
+        plt.tight_layout()
         
         # column satuation over time
         T,Z=np.meshgrid(times,zlist)
@@ -876,6 +879,9 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
                    'grav (Boug) max (microgal) =' +str(microgal.max())+'\n'
                    'grav (Boug) min (microgal) =' +str(microgal.min())+'\n'
                    'Max (Boug) amplidute (grav)='+str(microgal.max()-microgal.min())+'\n'
+                   'grav (Boug WT) max (microgal) =' +str(np.max(bougg))+'\n'
+                   'grav (Boug WT) min (microgal) =' +str(np.min(bougg))+'\n'
+                   'Max (Boug WT) amplidute (grav)='+str(np.max(bougg)-np.min(bougg))+'\n'
                    'grav (int_axsym) max (microgal)='+str((gravt-gravt[0]).max())+'\n'
                    'grav (int_axsym) min (microgal)='+str((gravt-gravt[0]).min())+'\n'
                    'Max (int_axsym) amplitude (microgal)='+str((gravt-gravt[0]).max()-(gravt-gravt[0]).min())+'\n')

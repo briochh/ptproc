@@ -7,7 +7,7 @@ Script for reading results calculating and plotting gravity
 """
 
 import os
-#os.chdir(r'C:\Users\glbjch\Local Documents\Work\Modelling\Pytough')
+os.chdir(r'C:\Users\glbjch\Local Documents\Work\Modelling\Pytough')
 import pytoughgrav as ptg
 import numpy as np
 import time
@@ -23,9 +23,9 @@ t0=tinit=time.clock()
 plt.close('all')
 
 read=True ########### I N P U T #########################
-readgeo=False ########### I N P U T #########################
+readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
-readdat=False ########### I N P U T #########################
+readdat=True ########### I N P U T #########################
 dat_fname='flow2.inp'
 readresults=True ########### I N P U T #########################
 results_fname='flow2.out'
@@ -34,7 +34,7 @@ sat_fname='results/sat.pkl'
 
 
 save=True ########### I N P U T #########################
-savevtk=True ########### I N P U T #########################
+savevtk=False ########### I N P U T #########################
 batch_or_straight='st' ########### I N P U T #########################
 modelorigin=(586034.886,1852660.465)
 
@@ -69,7 +69,7 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150806_1_var1' ########### I N P U T #########################
+    mod='20150806_2_var1' ########### I N P U T #########################
 
 
 #%%###########################################################################
@@ -78,7 +78,7 @@ if not batch:
     t0=time.clock()
     print 'running in straight mode (',batch_or_straight,')'
     print 'model=',mod
-    os.chdir('/Users/briochh/Documents/Workhere/'+mod)
+    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper/'+mod.split('_var')[0]+'/'+mod)
     if read:
         if readgeo is True: 
             print 'Reading geometry from '+ geo_fname
