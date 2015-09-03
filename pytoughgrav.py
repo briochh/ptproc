@@ -921,7 +921,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
             print('sat alreay pickled')
         else:
             save_obj(sat,'sat.pkl')
-    return results,sat,wellsatblk
+    return results,sat
 #%%
 def grate( modelname, infiles, winlen=[2,5,10], save=True,
           input_in="yrs", fall=None, fallmax=None, intype='rel' ):
