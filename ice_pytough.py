@@ -280,8 +280,8 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
     width=geo.bounds[1][1]-geo.bounds[0][1]   
     yrsec=365.25*3600*24
     mod=modelname
-    if not geo.radial:    
-        ptg.makeradial(geo,None,width)
+#    if not geo.radial:    
+#        ptg.makeradial(geo,None,width)
     # find atmosphere blocks
     grid=dat.grid # define input grid    
     grid2=t2grid().fromgeo(geo) # grid saved in flow2.inp does not contain atmos information required.
