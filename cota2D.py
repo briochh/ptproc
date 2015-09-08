@@ -22,7 +22,7 @@ import copy
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Coto20150907_3'
+mod='Coto20150907_4'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -45,7 +45,7 @@ dat=t2data('dev_files/initialflow2.inp') # read from template file
 dat.parameter['print_block']='dd 46' # define element to print in output - useful for loggin progress of TOUGH sim 
 dat.multi['num_equations']=3 # 3 defines non isothermal simulation
 
-perm=5.0e-12 # define permeability
+perm=5.0e-13 # define permeability
 poro=0.1  # define porosity
 
 #rp={'type':1, 'parameters':[0.3,0.05,1.0,1.0]}
@@ -204,7 +204,7 @@ dat.output_times['time_increment']= 500*yrsec
 #dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,1e-3,1.67e6])#1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,0.5e-3,1.6e6])#1.67e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var')#enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   
