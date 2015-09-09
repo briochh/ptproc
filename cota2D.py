@@ -22,7 +22,7 @@ import copy
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Coto20150909_1'
+mod='Coto20150909_2'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -178,7 +178,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False, hpregion={'hp   ':[[0,0,3000],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False, hpregion={'hp   ':[[0,0,3000],[250,0,6000]], 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 #ptg.makeradial(geo,grid,width=width) #~~~~~~~~~~~~~~~~~~~~~~~~~~~!!!!!!!!!!!!!!!!!!!!
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
