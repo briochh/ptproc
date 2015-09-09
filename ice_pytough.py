@@ -121,6 +121,11 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
                 infvol=True
                 initSG=10.9999
                 rocktype='bound'
+            if col in boundcol:
+                print "inf vol boundary cell " + blk.name
+                infvol=True
+                initSG=0.0
+                rocktype='bound'
             pmx=pmxcalc(blk,grid,hmax,rocktype,0.004,800.)      
         ptg.rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,eos=eos,infvol=infvol)
     return grid
