@@ -22,7 +22,7 @@ import copy
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Coto20150909_2'
+mod='Coto20150910_1'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -33,7 +33,7 @@ width=1.0
 zcells=[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*30+[25]*6+[10]*5    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
 #xcells=[5]*12+[10]*254+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
-xcells=[10]*6+[25]*100+[50]*10+[100]*9+[200,300,400,500,600,0.1]#,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
+xcells=[10]*6+[25]*100+[50]*10+[100]*9+[200,300,400,500,600,1]#,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 
 surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
 
@@ -103,8 +103,8 @@ source=rocktype('sourc', nad=3, permeability = [perm]*2+[perm],
 porosity=poro)
 source.conductivity=4 
 source.tortuosity=0.0
-source.relative_permeability=rp
-source.capillarity=cp
+source.relative_permeability=srp
+source.capillarity=scp
 source.specific_heat=1000.0
 rtypes=rtypes+[source]
 
@@ -178,7 +178,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False, hpregion={'hp   ':[[0,0,3000],[250,0,6000]], 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False, hpregion={'hp   ':[[0,0,3000],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 #ptg.makeradial(geo,grid,width=width) #~~~~~~~~~~~~~~~~~~~~~~~~~~~!!!!!!!!!!!!!!!!!!!!
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
