@@ -91,7 +91,7 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
                 initT=Tmin + ((np.abs(hmax-blk.centre[2])/100.0)*12.5)
             else:            
                 initT=Tmin + 10.0 + ((np.abs(hmax-blk.centre[2])/100.0)*3.0)
-            if intitT > 350.: initT=350.
+            if initT > 350.: initT=350.
             infvol=False
             if lay==geo.layerlist[-1]:
                 rocktype='sourc'
