@@ -20,13 +20,14 @@ t0=tinit=time.clock()
 plt.close('all')
 
 bmod=''#'Cota20150619_1/Cota20150619_1_ptb/'
-mod='Cota20150729_1' # define model name
+mod='Cota20150810_1' # define model name
+eos=3
 read=True ########### I N P U T #########################
 readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
 readdat=True ########### I N P U T #########################
 dat_fname='flow2.inp'
-readresults=True ########### I N P U T #########################
+readresults=False ########### I N P U T #########################
 results_fname='flow2.out'
 readflow=True ########### I N P U T #########################
 #flowH_fname='results/FLOH.pkl'
@@ -34,8 +35,10 @@ readflow=True ########### I N P U T #########################
 #flowF_fname='results/FLOLIQ.pkl'
 
 save=True ########### I N P U T #########################
-savevtk=True ########### I N P U T #########################
-flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
+savevtk=False ########### I N P U T #########################
+if eos==1:
+    flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
+else: flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+bmod+mod)    
@@ -56,7 +59,9 @@ if read:
     if readflow is True:
         if os.path.isfile('results/time.pkl'):
             times=ptg.load_obj('results/time.pkl')
-        else: times={}
+        else: 
+        	print('CANT READ time FILE ......Continuing with times={}')
+        	times={}
         for flow in flows.keys():
             flow_fname='results/'+flow+'.pkl'
             if os.path.isfile(flow_fname):

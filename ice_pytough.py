@@ -353,6 +353,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         plt.title('Flow ('+flow+') out of the model')
         plt.xlabel('Distance from axial centre (m)')
         plt.ylabel('Time (yrs)')
+        plt.tight_layout()
         if save:
             plt.savefig('results/'+mod+'_'+flow+'_.pdf',dpi=400)
         
@@ -370,6 +371,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         plt.title('Change in flow ('+flow+') out of the model')
         plt.xlabel('Distance from centre axis (m)')
         plt.ylabel('Time (yrs)')
+        plt.tight_layout()
         if save:
             plt.savefig('results/'+mod+'_delout_'+flow+'_.pdf',dpi=400)
         
@@ -382,6 +384,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         plt.title('Change in flow ('+flow+') in to the model')
         plt.xlabel('Distance from centre axis (m)')
         plt.ylabel('Time (yrs)')
+        plt.tight_layout()
         if save:
             plt.savefig('results/'+mod+'_delin_'+flow+'_.pdf',dpi=400)        
 #        plt.figure()
@@ -418,8 +421,22 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
     plt.xlabel('Distance from centre axis (m)')
     plt.ylabel('Time (yrs)')    
     plt.title('Melt rate')
+    plt.tight_layout()
     if save:
         plt.savefig('results/'+mod+'_meltrate_.pdf',dpi=400)  
+    
+    plt.figure()
+    plt.pcolormesh(X[X<2500],tscale,glacmeltrate, rasterized=True,cmap='rainbow') # mm/s
+    cbar=plt.colorbar(format='%.1e')
+    cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
+    #plt.xlim((0,2500))
+    plt.ylim(tscale.min(),tscale.max())
+    plt.xlabel('Distance from centre axis (m)')
+    plt.ylabel('Time (yrs)')    
+    plt.title('Melt rate')
+    plt.tight_layout()
+    if save:
+        plt.savefig('results/'+mod+'_glac_meltrate_.pdf',dpi=400)  
        
     plt.figure()
     plt.pcolormesh(X,tscale,deltameltrate, rasterized=True,cmap='rainbow') # mm/s
@@ -430,6 +447,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
     plt.xlabel('Distance from centre axis (m)')
     plt.ylabel('Time (yrs)') 
     plt.title('Change in melt rate')
+    plt.tight_layout()
     if save:
         plt.savefig('results/'+mod+'_meltrate_delta_.pdf',dpi=400)  
     
@@ -440,6 +458,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
     plt.xlim((0,2500))
     plt.ylim(tscale.min(),tscale.max())
     plt.title('Change in glacial melt rate')
+    plt.tight_layout()
     if save:
         plt.savefig('results/'+mod+'_glacmeltrate_delta_.pdf',dpi=400) 
 
@@ -454,6 +473,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
     plt.xlabel('Time (yrs)')
     plt.ylabel('Average melt rate at glacial base (mm/yr)')
     plt.title('Average basal meltrate')
+    plt.tight_layout()
     if save:
         plt.savefig('results/'+mod+'_basalmelt.pdf')
     
