@@ -346,7 +346,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         ## a quick plot of flows into atmosphere at X and time.
         plt.figure()
         plt.pcolormesh(X,tscale,qts.T, rasterized=True,cmap='rainbow') #W or (ks/s) /m2
-        cbar=plt.colorbar(format='%.0e')
+        cbar=plt.colorbar(format='%.1e')
         cbar.set_label(flow + r' out of the model ('+ unit + r'/m$^{2}$)')
         #plt.xlim(0,2500)
         plt.ylim(tscale.min(),tscale.max())
@@ -363,7 +363,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         
         plt.figure()
         plt.pcolormesh(X,tscale,delqout, rasterized=True,cmap='rainbow') #W or (ks/s) /m2
-        cbar=plt.colorbar(format='%.0e')
+        cbar=plt.colorbar(format='%.1e')
         cbar.set_label('Change in '+ flow + r' out of the model ('+ unit + r'/m$^{2}$)')
         #plt.xlim(0,2500)
         plt.ylim(tscale.min(),tscale.max())
@@ -375,7 +375,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         
         plt.figure()
         plt.pcolormesh(X,tscale,delqin, rasterized=True,cmap='rainbow') #W or (ks/s) /m2
-        cbar=plt.colorbar(format='%.0e')
+        cbar=plt.colorbar(format='%.1e')
         cbar.set_label('Change in '+ flow + r' in to the model ('+ unit + r'/m$^{2}$)')
         #plt.xlim(0,2500)
         plt.ylim(tscale.min(),tscale.max())
@@ -411,7 +411,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
     
     plt.figure()
     plt.pcolormesh(X,tscale,meltratematrix, rasterized=True,cmap='rainbow') # mm/s
-    cbar=plt.colorbar(format='%.0e')
+    cbar=plt.colorbar(format='%.1e')
     cbar.set_label(r'Melt rate (kg/s/m$^{2}$)')
     #plt.xlim((0,2500))
     plt.ylim(tscale.min(),tscale.max())
@@ -423,7 +423,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
        
     plt.figure()
     plt.pcolormesh(X,tscale,deltameltrate, rasterized=True,cmap='rainbow') # mm/s
-    cbar=plt.colorbar(format='%.0e')
+    cbar=plt.colorbar(format='%.1e')
     cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
     #plt.xlim((0,2500))
     plt.ylim(tscale.min(),tscale.max())
@@ -435,7 +435,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
     
     plt.figure()
     plt.pcolormesh(X[X<2500],tscale,deltaglacmeltrate, rasterized=True,cmap='rainbow') # mm/s
-    cbar=plt.colorbar(format='%.0e')
+    cbar=plt.colorbar(format='%.1e')
     cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
     plt.xlim((0,2500))
     plt.ylim(tscale.min(),tscale.max())
