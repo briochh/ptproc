@@ -27,7 +27,7 @@ readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
 readdat=True ########### I N P U T #########################
 dat_fname='flow2.inp'
-readresults=False ########### I N P U T #########################
+readresults=True########### I N P U T #########################
 results_fname='flow2.out'
 readflow=True ########### I N P U T #########################
 #flowH_fname='results/FLOH.pkl'
@@ -35,13 +35,14 @@ readflow=True ########### I N P U T #########################
 #flowF_fname='results/FLOLIQ.pkl'
 
 save=True ########### I N P U T #########################
-savevtk=False ########### I N P U T #########################
+savevtk=True ########### I N P U T #########################
 if eos==1:
     flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
 else: flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
-os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+bmod+mod)    
+#os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Molly project/'+bmod+'/'+mod)
+os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+bmod+'/'+mod)    
 if not os.path.exists('results'): 
     os.makedirs('results')   
     

@@ -26,20 +26,22 @@ models=[model,model+'_ptb']#,model+'_rtn']
 times={}
 ts=np.zeros(1)
 glaclim=[0.,2500]
+wd='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'
+#wd='C:/Users/glbjch/Local Documents/Work/Modelling/Molly project/'
 if save:
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+model)
+    os.chdir(wd+model)
     if not os.path.exists('stitched'): 
         os.makedirs('stitched')
-stitchpath='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+model+'/stitched/'
+stitchpath=wd+model+'/stitched/'
 
 flows=['FLOH','FLO(LIQ.)','FLO(GAS)']        
 for flow in flows:
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/')
+    os.chdir(wd)
     print flow
     data={}
     for mod in models:
         print 'model=',mod
-        os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/')
+        os.chdir(wd)
         os.chdir(mod)
         if ts[0]==0.0: # if first time through ts starts with 0
             times[str(mod)]=ptg.load_obj('results/time.pkl')
