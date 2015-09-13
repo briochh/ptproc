@@ -20,12 +20,12 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Cota20150810_1'
+model='Coto20150911_1'
 yrsec=365.25*24*3600
-models=[model,model+'_ptb']#,model+'_rtn']
+models=[model,model+'_ptb1']#,model+'_rtn']
 times={}
 ts=np.zeros(1)
-glaclim=[0.,2500]
+glaclim=[250.,2500.]
 wd='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'
 #wd='C:/Users/glbjch/Local Documents/Work/Modelling/Molly project/'
 if save:
@@ -109,7 +109,7 @@ for flow in flows:
                     meltrate[i]= meltrate[i] + (r*A) # kg/s
                     glacArea=glacArea+A
             i=i+1  
-        meltrate_mmpyr= (meltrate*yrsec)/((np.pi*(glaclim[1]**2))-(np.pi*(glaclim[0]**2))) # kg/yr/m2 ~ mm/yr  
+        meltrate_mmpyr= (meltrate*yrsec)/((np.pi*(glaclim[1]**2))-(np.pi*(glaclim[0]**2))) # kg/yr/m2 ~ mm/yr 
     else: unit ='kg/s'
     
     ## a quick plot of flows into atmosphere at X and time.
@@ -206,6 +206,15 @@ plt.ylabel('Average melt rate at glacial base (mm/yr)')
 plt.title('Average basal meltrate')
 if save:
     plt.savefig(stitchpath+model+'_'+'basalmelt.pdf')
+    
+plt.figure()
+plt.plot(tscale,meltrate*yrsec)
+plt.xlim(0, 500)
+plt.xlabel('Time (yrs)')
+plt.ylabel('Rate of mass loss from glacier (kg/yr)')
+plt.title('rate of mass loss')
+if save:
+    plt.savefig(stitchpath+model+'_'+'melt_ts.pdf')
     
         
 t1=time.clock()        
