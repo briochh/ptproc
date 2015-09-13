@@ -22,8 +22,8 @@ plt.close('all')
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi')
 
 
-basemod='Coto20150909_2'
-mod=basemod+'_ptb2'
+basemod='Coto20150911_1'
+mod=basemod+'_ptb4'
 if not os.path.exists(mod):
     os.makedirs(mod)
     
@@ -52,18 +52,18 @@ dat.parameter['print_interval']=50 # print (output) frequency to flow.out
 dat.parameter['tstop']=5E3*yrsec
 
 main=grid.rocktype['main ']
-main.permeability=main.permeability*10
+main.permeability=main.permeability*5
 
-#for blk in grid.blocklist:
-#    if blk.rocktype.name == 'main ':
-#        #blk.pmx
-#        blk.pmx=blk.pmx*10
+for blk in grid.blocklist:
+    if blk.rocktype.name == 'main ':
+        #blk.pmx
+        blk.pmx=blk.pmx*5
         #blk.pmx
 
 dat.clear_generators()
 heat_flux=0.24
 for blk in grid.blocklist[0:]: blk.hotcell=False
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[300,1.0e-3,1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[300,2.0e-3,1.67e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var')#enthalpy=8440.)
 
 
