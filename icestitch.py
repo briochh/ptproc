@@ -20,9 +20,10 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Coto20150911_1'
+model='Cota20150810_1'
+version=2
 yrsec=365.25*24*3600
-models=[model,model+'_ptb1']#,model+'_rtn']
+models=[model,model+'_ptb'+str(version)]#,model+'_rtn']
 times={}
 ts=np.zeros(1)
 glaclim=[250.,2500.]
@@ -30,9 +31,9 @@ wd='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'
 #wd='C:/Users/glbjch/Local Documents/Work/Modelling/Molly project/'
 if save:
     os.chdir(wd+model)
-    if not os.path.exists('stitched'): 
-        os.makedirs('stitched')
-stitchpath=wd+model+'/stitched/'
+    if not os.path.exists('stitched_ptb'+str(version)): 
+        os.makedirs('stitched_ptb'+str(version))
+stitchpath=wd+model+'/stitched_ptb'+str(version)+'/'
 
 flows=['FLOH','FLO(LIQ.)','FLO(GAS)']        
 for flow in flows:
@@ -115,7 +116,7 @@ for flow in flows:
     ## a quick plot of flows into atmosphere at X and time.
     plt.figure()
     plt.pcolormesh(X,tscale,qts.T, rasterized=True,cmap='rainbow') #W or (ks/s) /m2
-    cbar=plt.colorbar(format='%.0e')
+    cbar=plt.colorbar(format='%.1e')
     cbar.set_label(flow + r' out of the model ('+ unit + r'/m$^{2}$)')
     #plt.xlim(0,2500)
     plt.ylim(tscale.min(),tscale.max())
@@ -127,7 +128,7 @@ for flow in flows:
     
     plt.figure()
     plt.pcolormesh(X,tscale,np.subtract(qout.T,ssqts), rasterized=True,cmap='rainbow') #W or (ks/s) /m2
-    cbar=plt.colorbar(format='%.0e')
+    cbar=plt.colorbar(format='%.1e')
     cbar.set_label('Change in '+ flow + r' out of the model ('+ unit + r'/m$^{2}$)')
     #plt.xlim(0,2500)
     plt.ylim(tscale.min(),tscale.max())
@@ -140,7 +141,7 @@ for flow in flows:
     
     plt.figure()
     plt.pcolormesh(X,tscale,-np.subtract(qin.T,ssqts), rasterized=True,cmap='rainbow') #W or (ks/s) /m2
-    cbar=plt.colorbar(format='%.0e')
+    cbar=plt.colorbar(format='%.1e')
     cbar.set_label('Change in '+ flow + r' in to the model ('+ unit + r'/m$^{2}$)')
     #plt.xlim(0,2500)
     plt.ylim(tscale.min(),tscale.max())
@@ -166,7 +167,7 @@ for flow in flows:
 
 plt.figure()
 plt.pcolormesh(X,tscale,meltratematrix, rasterized=True,cmap='rainbow') # mm/s
-cbar=plt.colorbar(format='%.0e')
+cbar=plt.colorbar(format='%.1e')
 cbar.set_label(r'Melt rate (kg/s/m$^{2}$)')
 #plt.xlim((0,2500))
 plt.ylim(tscale.min(),tscale.max())
@@ -178,7 +179,7 @@ if save:
    
 plt.figure()
 plt.pcolormesh(X,tscale,deltameltrate, rasterized=True,cmap='rainbow') # mm/s
-cbar=plt.colorbar(format='%.0e')
+cbar=plt.colorbar(format='%.1e')
 cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
 #plt.xlim((0,2500))
 plt.ylim(tscale.min(),tscale.max())
@@ -190,13 +191,26 @@ if save:
 
 plt.figure()
 plt.pcolormesh(X[(X>glaclim[0]) & (X<glaclim[1])],tscale,deltaglacmeltrate, rasterized=True,cmap='rainbow') # mm/s
-cbar=plt.colorbar(format='%.0e')
+cbar=plt.colorbar(format='%.1e')
 cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
 plt.xlim((0,2500))
 plt.ylim(tscale.min(),tscale.max())
 plt.title('Change in glacial melt rate')
 if save:
     plt.savefig(stitchpath+model+'_'+'glacmeltrate_delta_.pdf',dpi=400) 
+    
+plt.figure()
+plt.pcolormesh(X[(X>glaclim[0]) & (X<glaclim[1])],tscale,glacmeltrate, rasterized=True,cmap='rainbow', vmax=1.0e-3) # mm/s
+cbar=plt.colorbar(format='%.1e')
+cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
+#plt.xlim((0,250))
+plt.ylim(tscale.min(),100)
+plt.xlabel('Distance from centre axis (m)')
+plt.ylabel('Time (yrs)')    
+plt.title('Melt rate')
+plt.tight_layout()
+if save:
+    plt.savefig(stitchpath+model+'_glac_meltrate_.pdf',dpi=400)  
     
 plt.figure()
 plt.plot(tscale,meltrate_mmpyr)
@@ -208,8 +222,9 @@ if save:
     plt.savefig(stitchpath+model+'_'+'basalmelt.pdf')
     
 plt.figure()
-plt.plot(tscale,meltrate*yrsec)
-plt.xlim(0, 500)
+plt.semilogx(tscale,meltrate*yrsec)
+plt.xlim(0.08, 100)
+plt.ylim(0,4.5e7)
 plt.xlabel('Time (yrs)')
 plt.ylabel('Rate of mass loss from glacier (kg/yr)')
 plt.title('rate of mass loss')
