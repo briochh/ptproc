@@ -22,7 +22,7 @@ plt.close('all')
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi')
 
 
-basemod='Cota20150810_1'
+basemod='Cota20150811_1'
 mod=basemod+'_ptb3'
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -49,7 +49,7 @@ dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=200
 dat.parameter['max_timestep']=1*yrsec # maximum timstep length
 dat.parameter['print_interval']=50 # print (output) frequency to flow.out
-dat.parameter['tstop']=5E3*yrsec
+dat.parameter['tstop']=1E3*yrsec
 
 #main=grid.rocktype['main ']
 #main.permeability=main.permeability*5
