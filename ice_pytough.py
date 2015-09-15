@@ -142,7 +142,7 @@ def pmxcalc(blk,grid,hmax,rock,Saar_lam=0.004,switch_depth=None):
         pmx=grid.rocktype[rock].permeability[0]*np.exp(-Saar_lam*depth)
     return pmx        
 
-def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None):
+def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None, inject2=None):
     f = open(mod+'/Heat_genertot.txt','w')
     f.write('Model = '+mod+'\n')
     allgens=[]
@@ -186,9 +186,18 @@ def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None):
             if inject is not None:
                 if grid.block[blkname].centre[0] < inject[0]:
                     ixa=col.area*inject[1]
-                    gen=t2generator(name=' i'+col.name,block=blkname,type='COM1',gx=ixa, ex=inject[2]) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
+                    gen=t2generator(name=' i'+col.name,block=blkname,type='COM1',gx=ixa, ex=inject[2]) # create a generater oject with the heat generation rate of tflux - muliplication by column area important. 
                     dat.add_generator(gen)
                     allinject.append(ixa)
+    if inject2 is not None:
+        lays=[lay for lay in geo.layerlist if inject2[0] < lay.centre < inject2[1]]
+        for lay in lays:
+            col=geo.columnlist[0] # first column
+            blkname=geo.block_name(lay.name,col.name)
+            ixa=lay.get_thickness()*2*np.pi*col.get_side_lengths()[1]*inject2[2]
+            gen=t2generator(name='i'+lay.name+'01',block=blkname,type='COM1',gx=ixa, ex=inject2[3]) # create a generater oject with the heat generation rate of tflux - muliplication by column area important. 
+            dat.add_generator(gen)
+            allinject.append(ixa)
     allgens=np.array(allgens)
     gensum=np.sum(allgens)    
     allinject=np.array(allinject)
@@ -326,6 +335,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
             deltameltrate=np.array([tstep-meltratematrix[0] for tstep in meltratematrix]) # kg/s/m2 ~ mm/s
             #meltrate just within glacier            
             glacmeltrate=meltratematrix.T[X<2500].T  # kg/s/m2 ~ mm/s
+            print np.max(glacmeltrate)
             #change in meltrate within glacier 
             deltaglacmeltrate=deltameltrate.T[X<2500].T # kg/s/m2 ~ mm/s
             i=0
@@ -426,10 +436,10 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         plt.savefig('results/'+mod+'_meltrate_.pdf',dpi=400)  
     
     plt.figure()
-    plt.pcolormesh(X[X<2500],tscale,glacmeltrate, rasterized=True,cmap='rainbow') # mm/s
+    plt.pcolormesh(X[X<2500],tscale,glacmeltrate, rasterized=True,cmap='rainbow', vmax=3.2e-4) # mm/s
     cbar=plt.colorbar(format='%.1e')
     cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
-    #plt.xlim((0,2500))
+    #plt.xlim((0,250))
     plt.ylim(tscale.min(),tscale.max())
     plt.xlabel('Distance from centre axis (m)')
     plt.ylabel('Time (yrs)')    
