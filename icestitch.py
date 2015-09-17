@@ -19,7 +19,7 @@ import copy
 #%% set up
 t0=tinit=time.clock()
 plt.close('all')
-save=True ########### I N P U T #########################
+save=False ########### I N P U T #########################
 model='Cota20150810_1'
 version=2
 yrsec=365.25*24*3600

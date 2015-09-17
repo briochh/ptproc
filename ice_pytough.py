@@ -436,7 +436,7 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
         plt.savefig('results/'+mod+'_meltrate_.pdf',dpi=400)  
     
     plt.figure()
-    plt.pcolormesh(X[X<2500],tscale,glacmeltrate, rasterized=True,cmap='rainbow', vmax=3.2e-4) # mm/s
+    plt.pcolormesh(X[X<2500],tscale,glacmeltrate, rasterized=True,cmap='rainbow')#, vmax=3.2e-4) # mm/s
     cbar=plt.colorbar(format='%.1e')
     cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
     #plt.xlim((0,250))
