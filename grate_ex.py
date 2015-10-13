@@ -41,16 +41,16 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150814_2_var1' ########### I N P U T #########################
+    mod='20150806_3_var1' ########### I N P U T #########################
 
-intype='' ########### I N P U T #########################
+intype='rel' ########### I N P U T #########################
 if intype is 'rel':
     infiles=['gravdiff'+str(n)+'.dat' for n in nums]#'axsym_int_microgal'+str(num)+'.dat' #'gravdiff1.dat')  ########### I N P U T #########################
 else:
     infiles=['axsym_int_microgal'+str(n)+'.dat' for n in nums]#'axsym_int_microgal'+str(num)+'.dat' #'gravdiff1.dat')  ########### I N P U T #########################
 
 input_times='yrs' #yrs ########### I N P U T #########################
-windows=[2,5,10]  ########### I N P U T #########################
+windows=[1,2,5,10]  ########### I N P U T #########################
 
 ###########################################################################
 ############################# STRAIGHT MODE ###############################

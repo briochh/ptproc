@@ -28,6 +28,7 @@ from scipy.interpolate import interp1d
 #from scipy.interpolate import griddata
 import scipy.integrate as integrate
 import scipy.constants
+import scipy.stats as stats
 import shutil
 import time
 import os
@@ -922,6 +923,11 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         else:
             save_obj(sat,'sat.pkl')
     return results,sat
+def probex(data):
+    sortdata=np.flipud(np.sort(np.abs(data)))
+    rank=np.arange(1,len(data)+1)
+    Pe=rank/(len(data)+1.)
+    return Pe, sortdata
 #%%
 def grate( modelname, infiles, winlen=[2,5,10], save=True,
           input_in="yrs", fall=None, fallmax=None, intype='rel' ):
@@ -941,26 +947,36 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
     windg={}
     yrsec=3600*24*365.25
     num=1 
+    fig2,gax=plt.subplots(1)
+    xp=0.0
     for infile in infiles:
         in_ts=np.loadtxt(infile)
         if input_in is 'yrs': in_ts[:,0]=in_ts[:,0]*yrsec
         for win in winlen:
             n=0
-            plott=np.empty(len(in_ts))
-            dy=np.empty(len(in_ts))
-            yrdg=np.empty(len(in_ts)) 
+            #set up empty arrays to store times and changes over window length
+            plott=np.ones(len(in_ts))*np.nan
+            dy=np.ones(len(in_ts))*np.nan
+            yrdg=np.ones(len(in_ts))*np.nan
             for t,g in in_ts:
-                te=t+win*yrsec 
-                i=bisect.bisect(in_ts[:,0], te)
-                if i == len(in_ts):
-                    dy[n] = in_ts[i-1,1]+((te-in_ts[i-1,0])*(in_ts[i-1,1]-in_ts[i-2,1])/(in_ts[i-1,0]-in_ts[i-2,0]))
-                else:
+                te=t+win*yrsec # time, one window length in the future
+                if te <= in_ts[:,0].max():
+                    i=bisect.bisect(in_ts[:,0], te) # index when time one window length is crossed
+                    #if te > in_ts[:,0].max():#if i == len(in_ts): 
+                        #dy[n] = g# in_ts[i-1,1]+((te-in_ts[i-1,0])*(in_ts[i-1,1]-in_ts[i-2,1])/(in_ts[i-1,0]-in_ts[i-2,0]))
+                   # else:
                     dy[n]=in_ts[i-1,1]+((in_ts[i,1]-in_ts[i-1,1])*(te-in_ts[i-1,0])/(in_ts[i,0]-in_ts[i-1,0]))
-                yrdg[n]=dy[n]-g
-                plott[n]=(t+win*yrsec/2)
+                    plott[n]=(t+(win*yrsec)/2)
+                    yrdg[n]=dy[n]-g
+                    #if te > in_ts[:,0].max():
+                    #    print('need a break')
                 n+=1
+            yrdg=yrdg[~np.isnan(yrdg)]  
+            plott=plott[~np.isnan(plott)]
             plottimes['win_'+str(win)]=plott
             windg['win_'+str(win)]=yrdg
+            
+            #stats.pdf()
         
         #times=plott/yrsec
             
@@ -983,38 +999,102 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
         ynew=f(xnew)
         dgbydt=np.gradient(ynew,np.diff(xnew)[0])
         
-        output=np.array([['peryear',dgbydt.min(),dgbydt.max()]])
+        output=np.array([['peryear',dgbydt.min(),dgbydt.max(),'']])
         
-        im2, axarr=plt.subplots(2,sharex=True)
-        axarr[0].tick_params(axis='both',labelsize=18)
-        axarr[1].tick_params(axis='both',labelsize=18)
+        #%% plot
+        fig=plt.figure(figsize=(12,6))
+        ax1=plt.subplot2grid((2,3),(0,0),colspan=2)
+        ax2=plt.subplot2grid((2,3),(1,0),colspan=2,sharex=ax1)
+        ax3=plt.subplot2grid((2,3),(0,2),rowspan=2)
         
-        data, =axarr[0].plot(x,y,'-',label='data',linewidth=2)
-        #interp, = plt.plot(xnew,f(xnew),'b-',label='linear')
-        axarr[0].set_ylabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
-        #plt.xlabel('Time (years)') 
-        #ax2=plt.twinx()
-        color_cycle=axarr[1]._get_lines.color_cycle
+        ax1.tick_params(axis='both',labelsize=18)
+        ax2.tick_params(axis='both',labelsize=18)
+        ax3.tick_params(axis='both',labelsize=16)
+        data, =ax1.plot(x,y,'-',label='data',linewidth=2)
+        ax1.set_ylabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
+        ax1.axis([0.0, 100,-200,150])
+        
+        color_cycle=ax2._get_lines.color_cycle
         next(color_cycle)
-        #grad, = axarr[1].plot(xnew,dgbydt,'-',label='gradient', color='0.6' )
-        #plt.legend(loc='best')
+        
         leghand=[data]#,grad]
+        #pleghand=[]
+        #pleglab=[]
         leglab=['data']#,'$\Delta g$/yr']
         for win in winlen:
-            temp=axarr[1].plot( plottimes['win_'+str(win)]/yrsec,windg['win_'+str(win)],'-', markersize=12,label=r'$\Delta g$/'+str(win)+'yrs',linewidth=2)
+            Pe,sortdata=probex(windg['win_'+str(win)])
+            medi=np.abs(Pe-0.5).argmin() # index of 50 pob of exceedance
+            temp=ax2.plot( plottimes['win_'+str(win)]/yrsec,windg['win_'+str(win)],'-', markersize=12,label=r'$\Delta g$/'+str(win)+'yrs',linewidth=2)
             leghand=leghand+temp
-            leglab=leglab+[r'$\Delta g$/'+str(win)+'yrs']
-            output=np.concatenate((output,[[win,windg['win_'+str(win)].min(),windg['win_'+str(win)].max()]]))
-        axarr[1].set_ylabel(r'$\Delta g$ per time ($\mu$gal/time)',fontsize=18)
-        plt.xlabel('Time (years)',fontsize=18)    
-        plt.axis([0.0, 100,None,None])
+            leglab=leglab+[str(win)+'yrs']#[r'$\Delta g$/'+str(win)+'yrs']
+            output=np.concatenate((output,[[win,windg['win_'+str(win)].min(),windg['win_'+str(win)].max(),sortdata[medi]]]))
+            
+            gax.scatter(xp,np.abs(sortdata).max(),s=50,color=temp[0].get_c())
+            gax.scatter(xp,sortdata[medi],s=50,color=temp[0].get_c(),facecolors='none',linewidth=2)
+            xp=xp+0.2
+            ax3.plot(sortdata,Pe,color=temp[0].get_c(),linewidth=2)
+           # pleghand=pleghand+ptemp
+           # pleglab=pleglab+[str(win)+'yrs']
+        ax2.set_ylabel(r'$\Delta g$ per time ($\mu$gal/time)',fontsize=18)
+        ax2.set_xlabel('Time (years)',fontsize=18)    
+        ax2.axis([0.0, 100,-200,150])
+        ax3.yaxis.tick_right()
+        ax3.yaxis.set_label_position("right")
+        ax3.set_ylabel(r'Probability of Exceedance',fontsize=18)
+        ax3.set_xlabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
+        ax3.locator_params(axis='x', nbins=5)
+        #ptemp[0].axes.legend(pleghand,pleglab,bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+              # ncol=3, mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
+        #paxarr.axis([0.0, 100,None,None])
         
-        plt.show()
-        data.axes.legend(leghand,leglab,bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-               ncol=4, mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
+        #plt.show()
+        len(winlen)
+        data.axes.legend(leghand,leglab,bbox_to_anchor=(0., 1.02, 1.55, .102), loc=3,
+               ncol=len(winlen)+1, mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
+        xp=xp+0.2
+        
+#       im2, axarr=plt.subplots(2,sharex=True)
+#        pplot,paxarr=plt.subplots()
+#        axarr[0].tick_params(axis='both',labelsize=18)
+#        axarr[1].tick_params(axis='both',labelsize=18)
+#        
+#        data, =axarr[0].plot(x,y,'-',label='data',linewidth=2)
+#        #interp, = plt.plot(xnew,f(xnew),'b-',label='linear')
+#        axarr[0].set_ylabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
+#        #plt.xlabel('Time (years)') 
+#        #ax2=plt.twinx()
+#        color_cycle=axarr[1]._get_lines.color_cycle
+#        next(color_cycle)
+#        #grad, = axarr[1].plot(xnew,dgbydt,'-',label='gradient', color='0.6' )
+#        #plt.legend(loc='best')
+#        leghand=[data]#,grad]
+#        pleghand=[]
+#        pleglab=[]
+#        leglab=['data']#,'$\Delta g$/yr']
+#        for win in winlen:
+#            Pe,sortdata=probex(windg['win_'+str(win)])
+#            temp=axarr[1].plot( plottimes['win_'+str(win)]/yrsec,windg['win_'+str(win)],'-', markersize=12,label=r'$\Delta g$/'+str(win)+'yrs',linewidth=2)
+#            leghand=leghand+temp
+#            leglab=leglab+[r'$\Delta g$/'+str(win)+'yrs']
+#            output=np.concatenate((output,[[win,windg['win_'+str(win)].min(),windg['win_'+str(win)].max()]]))
+#            ptemp=paxarr.plot(sortdata,Pe,color=temp[0].get_c(),linewidth=2)
+#            pleghand=pleghand+ptemp
+#            pleglab=pleglab+[str(win)+'yrs']
+#        axarr[1].set_ylabel(r'$\Delta g$ per time ($\mu$gal/time)',fontsize=18)
+#        axarr[1].set_xlabel('Time (years)',fontsize=18)    
+#        axarr[1].axis([0.0, 100,None,None])
+#        paxarr.set_ylabel(r'Probability of Exceedance',fontsize=18)
+#        paxarr.set_xlabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)   
+#        ptemp[0].axes.legend(pleghand,pleglab,bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+#               ncol=3, mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
+#        #paxarr.axis([0.0, 100,None,None])
+#        
+#        #plt.show()
+#        data.axes.legend(leghand,leglab,bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+#               ncol=4, mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
         
         if save:
-               im2.savefig(mod+'_'+str(num)+'_'+intype+'grate.pdf')
+               fig.savefig(mod+'_'+str(num)+'_'+intype+'grate.pdf',bbox_inches='tight')
                np.savetxt(mod+'_'+str(num)+'_'+intype+'_grate_minmaxs.txt',output,fmt='%s')
                if fall is not None:           
                    fall.write('modelname = '+str(mod)+ '\n'
