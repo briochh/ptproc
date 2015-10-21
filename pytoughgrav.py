@@ -923,6 +923,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         else:
             save_obj(sat,'sat.pkl')
     return results,sat
+    
 def probex(data):
     sortdata=np.flipud(np.sort(np.abs(data)))
     rank=np.arange(1,len(data)+1)
@@ -948,7 +949,9 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
     yrsec=3600*24*365.25
     num=1 
     fig2,gax=plt.subplots(1)
-    xp=0.0
+    xp=0#np.arange(1./(len(winlen)+1.),1,1./(len(winlen)+1.))
+    xlab=['P1','P2','P3','P4','P5','P6']
+    bp=[]
     for infile in infiles:
         in_ts=np.loadtxt(infile)
         if input_in is 'yrs': in_ts[:,0]=in_ts[:,0]*yrsec
@@ -1000,7 +1003,7 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
         dgbydt=np.gradient(ynew,np.diff(xnew)[0])
         
         output=np.array([['peryear',dgbydt.min(),dgbydt.max(),'']])
-        
+        PEout=[]
         #%% plot
         fig=plt.figure(figsize=(12,6))
         ax1=plt.subplot2grid((2,3),(0,0),colspan=2)
@@ -1023,15 +1026,27 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
         leglab=['data']#,'$\Delta g$/yr']
         for win in winlen:
             Pe,sortdata=probex(windg['win_'+str(win)])
+            if save:
+                np.savetxt(mod+'_'+str(num)+'_win'+str(win)+'_'+intype+'_PE_grate.txt',
+                           np.c_[Pe,sortdata],fmt='%s')
+                np.savetxt(mod+'_'+str(num)+'_win'+str(win)+'_'+intype+'_grate_ts.txt',
+                           np.c_[plottimes['win_'+str(win)]/yrsec,windg['win_'+str(win)]],fmt='%s')
             medi=np.abs(Pe-0.5).argmin() # index of 50 pob of exceedance
-            temp=ax2.plot( plottimes['win_'+str(win)]/yrsec,windg['win_'+str(win)],'-', markersize=12,label=r'$\Delta g$/'+str(win)+'yrs',linewidth=2)
+            temp=ax2.plot( plottimes['win_'+str(win)]/yrsec,windg['win_'+str(win)],'-', 
+                                     markersize=12,label=r'$\Delta g$/'+str(win)+'yrs',linewidth=2)
             leghand=leghand+temp
             leglab=leglab+[str(win)+'yrs']#[r'$\Delta g$/'+str(win)+'yrs']
             output=np.concatenate((output,[[win,windg['win_'+str(win)].min(),windg['win_'+str(win)].max(),sortdata[medi]]]))
-            
-            gax.scatter(xp,np.abs(sortdata).max(),s=50,color=temp[0].get_c())
-            gax.scatter(xp,sortdata[medi],s=50,color=temp[0].get_c(),facecolors='none',linewidth=2)
+            #gax.scatter(xp,np.abs(sortdata).max(),s=50,color=temp[0].get_c())
+            #gax.scatter(xp,sortdata[medi],s=50,color=temp[0].get_c(),facecolors='none',linewidth=2)
             xp=xp+0.2
+            bp=bp+[gax.boxplot(np.abs(windg['win_'+str(win)]),positions=[xp], 
+                boxprops={'color':temp[0].get_c(),'linewidth':2},
+                whiskerprops={'color':temp[0].get_c(),'linewidth':2, 'linestyle':'-'},
+                capprops={'color':temp[0].get_c(),'linewidth':2},
+                flierprops={'color':temp[0].get_c(),'linewidth':2},
+                medianprops={'linewidth':2},
+                whis=([5,95]))]
             ax3.plot(sortdata,Pe,color=temp[0].get_c(),linewidth=2)
            # pleghand=pleghand+ptemp
            # pleglab=pleglab+[str(win)+'yrs']
@@ -1043,6 +1058,8 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
         ax3.set_ylabel(r'Probability of Exceedance',fontsize=18)
         ax3.set_xlabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
         ax3.locator_params(axis='x', nbins=5)
+        #gax.boxplot(np.abs([windg['win_'+str(win)] for win in winlen]),positions=xp)
+        xp=xp+0.2
         #ptemp[0].axes.legend(pleghand,pleglab,bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
               # ncol=3, mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
         #paxarr.axis([0.0, 100,None,None])
@@ -1051,7 +1068,7 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
         len(winlen)
         data.axes.legend(leghand,leglab,bbox_to_anchor=(0., 1.02, 1.55, .102), loc=3,
                ncol=len(winlen)+1, mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
-        xp=xp+0.2
+        #xp=xp+0.2
         
 #       im2, axarr=plt.subplots(2,sharex=True)
 #        pplot,paxarr=plt.subplots()
@@ -1105,6 +1122,25 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
                    fallmax.write(str(mod)+'\t'+str(np.max(np.abs([float(i) for i in output[0][1:]])))+'\t'+str(np.max(np.abs([float(i) for i in output[1][1:]])))+'\t'+str(np.max(np.abs([float(i) for i in output[2][1:]])))+'\t'+str(np.max(np.abs([float(i) for i in output[3][1:]])))+'\n')
                #f = open('resultxt_'+str(wellno)+'test.txt','w')
         num=num+1
+    if intype=='rel':
+        xmax=len(infiles)-1
+    else: 
+        xmax=len(infiles)
+    gax.axis([0.0,xmax,None,None])
+    barlocs=np.arange(0,xmax+1,2)
+    gax.bar(barlocs,[gax.get_yticks()[-1]-gax.get_yticks()[0]]*len(barlocs),bottom=gax.get_yticks()[0],color='lightgrey', width=1, edgecolor = "none")
+    xticks=np.arange(0,xmax,1)+0.5
+    gax.xaxis.set_ticks(xticks)
+    gax.xaxis.set_ticklabels(xlab[0:xmax])
+    gax.set_ylabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
+    gax.set_xlabel('Station',fontsize=18)
+    gax.axes.legend(leghand[1:],leglab[1:],bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+            ncol=len(winlen), mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
+    if save:
+        fig2.savefig(mod+'_'+intype+'_grate_box.pdf',bbox_inches='tight')
+    return gax,bp
+
+    
     #return output               
 
 def relgrav(reference_modelname,test_modelname=None,reference_ts='axsym_int_microgal5.dat',test_ts=['axsym_int_microgal1.dat'],save=True,time_in='yrs'):

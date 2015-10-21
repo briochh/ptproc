@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
+
 plt.close('all')
 batch_or_straight='str' ########### I N P U T ######################### 
 save=True ########### I N P U T #########################
@@ -41,7 +42,8 @@ if batch_or_straight in anas+['b','ba','bat','batc']:
     main=True ########### I N P U T #########################
 else:
     batch=False
-    mod='20150806_3_var1' ########### I N P U T #########################
+    mod='20150814_3_var1' ########### I N P U T #########################
+    mods=['20150806_1_var1','20150806_2_var1' ,'20150814_4_var1' ,'20150814_3_var1' ,'20150814_1_var1' ,'20150814_2_var1' ,'20150806_4_var1','20150806_3_var1'  ]
 
 intype='rel' ########### I N P U T #########################
 if intype is 'rel':
@@ -56,11 +58,12 @@ windows=[1,2,5,10]  ########### I N P U T #########################
 ############################# STRAIGHT MODE ###############################
 if not batch:
     t0=time.clock()
-    print 'running gravrates in straight mode (',batch_or_straight,')'
-    print 'model=',mod
-    os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper/'+mod.split('_v')[0]+'/'+mod+'/results')
     #mod=mod+str(num)
-    ptg.grate(mod,infiles,windows,input_in=input_times,save=save, intype=intype)
+    for mod in mods:
+        print 'running gravrates in straight mode (',batch_or_straight,')'
+        print 'model=',mod
+        os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Gravpaper/'+mod.split('_v')[0]+'/'+mod+'/results')
+        ptg.grate(mod,infiles,windows,input_in=input_times,save=save, intype=intype)
 
 
 
