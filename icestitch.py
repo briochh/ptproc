@@ -19,9 +19,9 @@ import copy
 #%% set up
 t0=tinit=time.clock()
 plt.close('all')
-save=False ########### I N P U T #########################
-model='Cota20150810_1'
-version=2
+save=True ########### I N P U T #########################
+model='Coto20150911_1'
+version=4
 yrsec=365.25*24*3600
 models=[model,model+'_ptb'+str(version)]#,model+'_rtn']
 times={}

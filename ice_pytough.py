@@ -274,7 +274,7 @@ def simple_readres( modelname, savevtk=False, tough2_input=None, geom_data=None,
     os.chdir(current_d)   
     return geo,grid,dat,results
     
-def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=None, results=None, times={}, fall=None,flows={'FLOH':{},'FLOF':{}}, logt=False):
+def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, tough2_input=None, results=None, times={}, fall=None,flows={'FLOH':{},'FLOF':{}}, logt=False):
     """ Function to calculated surface heat flow from pytough results
     """
     if type(tough2_input) is not t2data and tough2_input is not None:
@@ -295,8 +295,8 @@ def icepost( modelname, save=False, savevtk=False, geom_data=None, tough2_input=
     width=geo.bounds[1][1]-geo.bounds[0][1]   
     yrsec=365.25*3600*24
     mod=modelname
-#    if not geo.radial:    
-#        ptg.makeradial(geo,None,width)
+    if radial and not geo.radial:    
+        ptg.makeradial(geo,None,width)
     # find atmosphere blocks
     grid=dat.grid # define input grid    
     grid2=t2grid().fromgeo(geo) # grid saved in flow2.inp does not contain atmos information required.

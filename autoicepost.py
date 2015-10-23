@@ -23,12 +23,16 @@ parser = argparse.ArgumentParser(description='Prepare perturbation model')
 parser.add_argument('-b','--base', help='basemodel name',required=True)
 parser.add_argument('-l','--location', help='location',required=False, default='.')
 parser.add_argument('-e','--eos',help='eos',required=False,default=3)
+parser.add_argument('-r','--radial_model',help='set if radial model',required=False,action='store_true')
 
 args = parser.parse_args()
 
 os.chdir(args.location)
 
-
+if arg.radial_model:
+    radial=True
+else:
+    radial=False
 mod=args.base # define model name
 eos=args.eos
 read=True ########### I N P U T #########################
@@ -87,5 +91,5 @@ if read:
 t1=time.clock()        
 print 'time to read=',(t1-t0)  
       
-ipt.icepost(mod, geom_data=geo,tough2_input=dat, results=results, times=times, save=save, savevtk=savevtk,flows=flows)
+ipt.icepost(mod, geom_data=geo,tough2_input=dat, radial=radial, results=results, times=times, save=save, savevtk=savevtk,flows=flows)
 print 'time to run =', time.clock()-tinit
