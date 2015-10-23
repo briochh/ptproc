@@ -22,8 +22,8 @@ plt.close('all')
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi')
 
 
-basemod='Cota20150811_1'
-mod=basemod+'_ptb3'
+basemod='Coto20150911_1'
+mod=basemod+'_ptb5'
 if not os.path.exists(mod):
     os.makedirs(mod)
     
@@ -31,7 +31,7 @@ dat=t2data(basemod+'/flow2.inp')
 geo=mulgrid(basemod+'/grd.dat')
 grid=dat.grid
 width=geo.bounds[1][1]-geo.bounds[0][1]
-ptg.makeradial(geo,None,width) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#ptg.makeradial(geo,None,width) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 yrsec=365.25*3600*24    
 # INCON
@@ -63,7 +63,7 @@ dat.parameter['tstop']=1E3*yrsec
 dat.clear_generators()
 heat_flux=0.24
 for blk in grid.blocklist[0:]: blk.hotcell=False
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,1.0e-3,1.67e6], inject2=[4500,5000,0.5e-3,1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[300,2.0e-3,1.67e6])#, inject2=[4500,5000,0.5e-3,1.67e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var')#enthalpy=8440.)
 
 
