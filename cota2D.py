@@ -22,7 +22,7 @@ import copy
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Coto20150911_3'
+mod='Cota20150804_3_m2'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -34,7 +34,9 @@ zcells=[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*30+[25]*6+[10]*5    #+[100]*6+[50
 dy=1 # size of cell in y direction
 #xcells=[5]*12+[10]*254+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 xcells=[10]*6+[25]*100+[50]*10+[100]*9+[200,300,400,500,600,1]#,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
-
+radial=True #~~~~~~~~~~~~~~~~~~~~~~~~~~~!!!!!!!!!!!!!!!!!!!! 
+if radial:
+    xcells=xcells[:-1]
 surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
 
 geo=ipt.icegeo( mod, width=width, celldim=10., origin=origin,
@@ -178,8 +180,8 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False, hpregion={'hp   ':[[0,0,3000],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
-#ptg.makeradial(geo,grid,width=width) #~~~~~~~~~~~~~~~~~~~~~~~~~~~!!!!!!!!!!!!!!!!!!!!
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,radial=radial)#, hpregion={'hp   ':[[0,0,3000],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+if radial: ptg.makeradial(geo,grid,width=width) 
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
 #%%
@@ -204,7 +206,7 @@ dat.output_times['time_increment']= 500*yrsec
 #dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[75,0.5e-3,1.67e6])#1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,2.],[10000.,0.24]]},inject=[150,1.0e-3,1.67e6])#1.67e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var')#enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   

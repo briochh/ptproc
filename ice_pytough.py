@@ -33,7 +33,7 @@ def icegeo( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
               zcells=zcells, xcells=xcells, surface=surface, atmos_type=atmos_type, min_thick=min_thick)
     return geo
 
-def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=None,satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004, glacier_limit=2500., infax=False, topsurf=None):
+def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=None,satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004, glacier_limit=2500., infax=False, topsurf=None,radial=False):
     """
     Method for defining ice grid. Varies slightly from ptg method.
     """
@@ -56,12 +56,12 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
             rocktype='top  ' # assign rocktype "top  "
             initP=atmosP*spy.power(1.-(col.surface*2.25577e-5),5.25588)  # initial presure condition - MAY NOT BE APPROPRIATE - WHAT IS THE PRESSURE UNDER THICK GLACIER AT 5000 m amsl??         
             Tmin=2.
-            if blk.centre[0] <= 350.:
-                initT=Tmin + (hmax-blk.centre[2])*(12.5/100.)
+            if blk.centre[0] <= 250.:
+                initT=50.#Tmin + (hmax-blk.centre[2])*(12.5/100.)
             elif 350.< blk.centre[0] <= glacier_limit: 
-                initT=Tmin+(hmax-blk.centre[2])*(12.5/100.) # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
+                initT=Tmin#+(hmax-blk.centre[2])*(12.5/100.) # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
             else:
-                initT = 25.8 - (blk.centre[2]*(5.4/1000.)) + (hmax-blk.centre[2])*(12.5/100.) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
+                initT = 25.8 - (hmax*(5.4/1000.)) #+ (hmax-blk.centre[2])*(12.5/100.) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))
             if initT <= Tmin: initT=Tmin
             #initT=25.8 - (hmax*(5.4/1000.)) + (hmax-blk.centre[2]*15./100.) 150.+(-0.0225*blk.centre[0])
             if (hpregion is not None and 'hp   ' in grid.rocktype.keys()):
@@ -122,9 +122,8 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
                 infvol=True
                 initSG=10.9999
                 rocktype='bound'
-            if col in boundcol:
+            if not radial and col in boundcol:
                 print "inf vol boundary cell " + blk.name
-                infvol=True
                 initSG=0.0
                 rocktype='bound'
             pmx=pmxcalc(blk,grid,hmax,rocktype,0.004,800.)      
