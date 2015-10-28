@@ -23,13 +23,13 @@ parser = argparse.ArgumentParser(description='Prepare perturbation model')
 parser.add_argument('-b','--base', help='basemodel name',required=True)
 parser.add_argument('-l','--location', help='location',required=False, default='.')
 parser.add_argument('-e','--eos',help='eos',required=False,default=3)
-parser.add_argument('-r','--radial_model',help='set if radial model',required=False,action='store_true')
+parser.add_argument('-r','--radial_model',help='set if radial model',action='store_true')
 
 args = parser.parse_args()
 
 os.chdir(args.location)
 
-if arg.radial_model:
+if args.radial_model:
     radial=True
 else:
     radial=False
