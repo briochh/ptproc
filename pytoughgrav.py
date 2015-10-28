@@ -401,12 +401,7 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,
             gxa=col.area*gx
             if enthalpy is "var" or etype is 'var':
                 etype='var'
-                if cfix is not None and col.centre[0] <= cfix[0]:
-                    T=cfix[1]
-                    #    enthalpy=209.0e3
-                else:
-                    T=dat.incon[blkname][-1][-1]
-                    #enthalpy=8440.
+                T=varenth(dat,col,cfix)
             else: 
                 T=25.
             enthalpy=4187.932*T+258.9018 
@@ -434,12 +429,7 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,
             gxa=col.area*gx
             if enthalpy is "var" or etype is 'var':
                 etype='var'
-                if cfix is not None and col.centre[0] <= cfix[0]:
-                    T=cfix[1]
-                    #    enthalpy=209.0e3
-                else:
-                    T=dat.incon[blkname][-1][-1]
-                    #enthalpy=8440.
+                T=varenth(dat,col,cfix)
             else: 
                 T=25.
             enthalpy=4187.932*T+258.9018 
@@ -451,7 +441,16 @@ def gen_constant(mod,geo,grid,dat,constant=7.7354e-6,
     f.write('Total generation in model = '+str(gensum)+' kg/s\n')
     f.write('Total generation rate per m2 = '+str(gensum/geo.area)+' kg/s\n')
     f.close()
-    
+
+def varenth(dat,col,cfix):
+    if cfix is not None and col.centre[0] <= cfix[0]:
+        T=cfix[1]
+        #    enthalpy=209.0e3
+    else:
+        T=dat.incon['at'+col.name][-1][-1]
+        #enthalpy=8440.    
+    return T
+        
 def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Modelling/Pytough/2Ddev/rand.dat",season_bias=0.65,length=100,
                  wavelength=1,maxlength=3e5,new_rand=None,constant=7.7354e-6,
                  elev_m=None,elev_c=None,mingen=2.0e-7,enthalpy=1.0942e5,

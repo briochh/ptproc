@@ -56,9 +56,9 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
             rocktype='top  ' # assign rocktype "top  "
             initP=atmosP*spy.power(1.-(col.surface*2.25577e-5),5.25588)  # initial presure condition - MAY NOT BE APPROPRIATE - WHAT IS THE PRESSURE UNDER THICK GLACIER AT 5000 m amsl??         
             Tmin=2.
-            if blk.centre[0] <= 250.:
-                initT=50.#Tmin + (hmax-blk.centre[2])*(12.5/100.)
-            elif 350.< blk.centre[0] <= glacier_limit: 
+            #if blk.centre[0] <= 250.:
+                #initT=50.#Tmin + (hmax-blk.centre[2])*(12.5/100.)
+            if 350.< blk.centre[0] <= glacier_limit: 
                 initT=Tmin#+(hmax-blk.centre[2])*(12.5/100.) # initial temperature - TOUGH2 doesn't seem to like < 1.0 C
             else:
                 initT = 25.8 - (hmax*(5.4/1000.)) #+ (hmax-blk.centre[2])*(12.5/100.) # 15.+((2000.-blk.centre[2])*(5.4/1000.0))

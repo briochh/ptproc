@@ -22,7 +22,7 @@ import copy
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150804_3_m2'
+mod='Cota20150804_3_m3'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -207,7 +207,7 @@ dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
 ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,2.],[10000.,0.24]]},inject=[150,1.0e-3,1.67e6])#1.67e6])
-ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var')#enthalpy=8440.)
+ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var',cfix=None)#enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   
 # Add data stored in grid object to pyTOUGH dat object - this is what gets turned into the TOUGH input file        
