@@ -20,8 +20,8 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Coto20150911_1'
-version=5
+model='Cota20150810_1'
+version=2
 yrsec=365.25*24*3600
 models=[model,model+'_ptb'+str(version)]#,model+'_rtn']
 times={}
@@ -224,7 +224,7 @@ if save:
 plt.figure()
 plt.semilogx(tscale,meltrate*yrsec)
 plt.xlim(0.08, 100)
-plt.ylim(0,4.5e7)
+#plt.ylim(0,4.5e7) #!!!!!!!!
 plt.xlabel('Time (yrs)')
 plt.ylabel('Rate of mass loss from glacier (kg/yr)')
 plt.title('rate of mass loss')
