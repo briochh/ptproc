@@ -22,7 +22,7 @@ import copy
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Cota20150810_1_m2'
+mod='Cota20150811_1_m2'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -141,7 +141,8 @@ rtypes=rtypes+[hp] # add object to list of rocktypes
 
 hp2=copy.copy(hp)
 hp2.name='hp2  '
-rtypes=rtypes+[hp2]
+hp2.permeability=np.array([10.*perm]*2+[perm])
+#rtypes=rtypes+[hp2]
 #rocktype('hp2  ', nad=3, permeability = [10.*perm]*2+[perm],
 #porosity=poro) 
 #hp2.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
@@ -149,8 +150,11 @@ rtypes=rtypes+[hp2]
 #hp2.relative_permeability=rp # if single phase this has no effect
 #hp2.capillarity=cp # if single phase this has no effect
 #hp2.specific_heat=1000.0 # J/(kg K) from Hickey - cotapaxi
-#rtypes=rtypes+[hp2] # add object to list of rocktypes
+rtypes=rtypes+[hp2] # add object to list of rocktypes
 
+hp3=copy.copy(hp)
+hp3.name='hp3  '
+hp3.permeability=np.array([10.*perm]*2+[10*perm])
 #hp3=rocktype('hp3  ', nad=3, permeability = [10.*perm]*2+[10.*perm],
 #porosity=poro) 
 #hp3.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
@@ -158,7 +162,7 @@ rtypes=rtypes+[hp2]
 #hp3.relative_permeability=rp # if single phase this has no effect
 #hp3.capillarity=cp # if single phase this has no effect
 #hp3.specific_heat=1000.0 # J/(kg K) from Hickey - cotapaxi
-#rtypes=rtypes+[hp3] # add object to list of rocktypes
+rtypes=rtypes+[hp3] # add object to list of rocktypes
 
 # define rock types and add cp and rp params
 #lp=rocktype('lp   ', nad=3, permeability = [lowk]*2+[lowk],
@@ -170,7 +174,7 @@ rtypes=rtypes+[hp2]
 #lp.specific_heat=1000.0 # J/(kg K) from Hickey - cotapaxi
 #rtypes=rtypes+[lp] # add object to list of rocktypes  - not used
 
-main.conductivity=b.conductivity=source.conductivity=top.conductivity=hp.conductivity=hp2.conductivity=conds # reset all conductivities
+main.conductivity=b.conductivity=source.conductivity=top.conductivity=hp.conductivity=hp2.conductivity=hp3.conductivity=conds # reset all conductivities
 #%%
 
 if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D model - NOTE: WILL NOT WORK FOR 3D
@@ -180,7 +184,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,radial=radial, hpregion={'hp   ':[[0,0,3000],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,radial=radial, hpregion={'hp   ':[[0,0,3000],[250,0,6000]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 if radial: ptg.makeradial(geo,grid,width=width) 
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
