@@ -205,7 +205,7 @@ def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None, inject2=None)
     f.write('Total generation rate per m2 = '+str(gensum/geo.area)+' J/s/m2\n')
     if inject is not None:
         f.write('Total injection in model = '+str(injectsum)+' kg/s\n')
-        f.write('injection rate per m2 = '+str(inject[0])+' kg/s/m2\n')
+        f.write('injection rate per m2 = '+str(inject[1])+' kg/s/m2\n')
     f.close()
     
 

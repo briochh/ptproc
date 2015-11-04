@@ -204,7 +204,7 @@ plt.pcolormesh(X[(X>glaclim[0]) & (X<glaclim[1])],tscale,glacmeltrate, rasterize
 cbar=plt.colorbar(format='%.1e')
 cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
 #plt.xlim((0,250))
-plt.ylim(tscale.min(),1000)
+plt.ylim(tscale.min(),100)
 plt.xlabel('Distance from centre axis (m)')
 plt.ylabel('Time (yrs)')    
 plt.title('Melt rate')
@@ -224,7 +224,7 @@ if save:
 plt.figure()
 plt.semilogx(tscale,meltrate*yrsec)
 plt.xlim(0.08, 100)
-#plt.ylim(0,4.5e7) #!!!!!!!!
+plt.ylim(0,4.5e7) #!!!!!!!!
 plt.xlabel('Time (yrs)')
 plt.ylabel('Rate of mass loss from glacier (kg/yr)')
 plt.title('rate of mass loss')

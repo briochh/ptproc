@@ -22,7 +22,7 @@ plt.close('all')
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi')
 
 
-basemod='Cota20150810_1_m2'
+basemod='Cota20150811_1_m2'
 mod=basemod+'_ptb4'
 print mod
 if not os.path.exists(mod):
