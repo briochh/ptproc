@@ -20,8 +20,8 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Cota20150810_1_m2'
-version=4
+model='Cota20150811_1_m2'
+version=1
 yrsec=365.25*24*3600
 models=[model,model+'_ptb'+str(version)]#,model+'_rtn']
 times={}
@@ -200,11 +200,12 @@ if save:
     plt.savefig(stitchpath+model+'_'+'glacmeltrate_delta_.pdf',dpi=400) 
     
 plt.figure()
-plt.pcolormesh(X[(X>glaclim[0]) & (X<glaclim[1])],tscale,glacmeltrate, rasterized=True,cmap='rainbow', vmax=1.0e-3) # mm/s
+plt.pcolormesh(X[(X>glaclim[0]) & (X<glaclim[1])],tscale,glacmeltrate, rasterized=True,cmap='rainbow',vmin=0.0)#, vmax=1.0e-3) # mm/s
 cbar=plt.colorbar(format='%.1e')
 cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
 #plt.xlim((0,250))
-plt.ylim(tscale.min(),100)
+#plt.yscale('log')
+plt.ylim(tscale.min(),1000)
 plt.xlabel('Distance from centre axis (m)')
 plt.ylabel('Time (yrs)')    
 plt.title('Melt rate')
