@@ -60,12 +60,19 @@ dat.parameter['tstop']=1E3*yrsec
         #blk.pmx
 #        blk.pmx=blk.pmx*5
         #blk.pmx
-
 hp=grid.rocktype['hp   ']
+#hp3=copy.copy(hp)
+#hp3.name='hp3  '
+#hp3.permeability=np.array([10.*perm]*2+[10*perm])
+#grid.add_rocktype(hp3)
+
+hp3=grid.rocktype['hp3  ']
+
 hp.permeability=hp.permeability*5
+hp3.permeability=hp3.permeability*5
 
 for blk in grid.blocklist:
-    if blk.rocktype.name == 'hp   ':
+    if blk.rocktype.name in ['hp   ','hp3  ']:
         #blk.pmx
         blk.pmx=blk.pmx*5
         #blk.pmx

@@ -326,7 +326,7 @@ def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, 
             
         if flow=='FLOH' or flow=='FHEAT': # calculate meltrate etc.
             unit='W'
-            meltratematrix= (qts.T/3.35E5) # kg/s/m2 
+            meltratematrix= (qts.T/3.335E5) # kg/s/m2 
             # but negative meltrate cant exist....
             # where heatflow is negative and meltrate is negative set meltrate=0
             #tempdel=np.array([tstep-meltratematrix[0] for tstep in meltratematrix]) # kg/s/m2 ~ mm/s
