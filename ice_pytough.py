@@ -311,48 +311,57 @@ def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, 
                 atmosconn=[cell.connection_name for cell in atmos] # returns a list of sets - !!!! sets are not ordered so cannot be indexed !!! 
             flows[flow],times = surfaceflow(atmos,atmosconn,results=results,grid=grid2,flow=flow)
         tq=times
-        X=[]
-        qts=[]
-        Area=[]
-        for x,a,q in flows[flow].values():
-            X.append(x)
-            qts.append(q)
-            Area.append(a)
-        inds=np.array(X).argsort()
-        X=np.array(X)[inds]
-        qts=np.array(qts)[inds] # J/s/m2 or kg/s/m2
-        Area=np.array(Area)[inds]
-        totq=np.sum(np.multiply(qts.T,Area),axis=1)
+        tscale=tq/yrsec
+        if logt:
+            tscale=np.log10(tscale) 
+
+        # produce flow matrix
+        X,Area,qts,qin,qout = pord_flowmatrix(flows[flow].values())       
+        #X=[]
+        #qts=[]
+        #Area=[]
+        #for x,a,q in flows[flow].values():
+        #    X.append(x)
+        #    qts.append(q)
+        #    Area.append(a)
+#        inds=np.array(X).argsort()
+#        X=np.array(X)[inds]
+#        Area=np.array(Area)[inds]
+#        qts=np.array(qts)[inds] # J/s/m2 or kg/s/m2 
+#        qin=np.ma.masked_array(qts,[qts>0]) # mask where flow is positive (i.e. out of the model)
+#        qout=np.ma.masked_array(qts,[qts<0]) # mask where flow is negative (i.e. in to the model)
+       # totq=np.sum(np.multiply(qts.T,Area),axis=1)
             
         if flow=='FLOH' or flow=='FHEAT': # calculate meltrate etc.
             unit='W'
-            meltratematrix= (qts.T/3.335E5) # kg/s/m2 
-            # but negative meltrate cant exist....
-            # where heatflow is negative and meltrate is negative set meltrate=0
-            #tempdel=np.array([tstep-meltratematrix[0] for tstep in meltratematrix]) # kg/s/m2 ~ mm/s
-            meltratematrix[meltratematrix<0]=0 # kg/s/m2 
-            # change in meltrate
-            deltameltrate=np.array([tstep-meltratematrix[0] for tstep in meltratematrix]) # kg/s/m2 ~ mm/s
-            #meltrate just within glacier            
-            glacmeltrate=meltratematrix.T[X<2500].T  # kg/s/m2 ~ mm/s
-            print np.max(glacmeltrate)
-            #change in meltrate within glacier 
-            deltaglacmeltrate=deltameltrate.T[X<2500].T # kg/s/m2 ~ mm/s
-            i=0
-            meltrate=np.zeros(len(tq))
-            for t in tq:
-                for x,A,r in zip(X,Area,meltratematrix[i]):
-                    if r> 0 and x < 2500:
-                        meltrate[i]= meltrate[i] + (r*A) # kg/s
-                i=i+1  
-            meltrate_mmpyr= (meltrate*yrsec)/(np.pi*(2500**2)) # kg/yr/m2 ~ mm/yr
+            calcmeltrate(qts,X,times,Area,glaclim=[250,2500])
+#            meltratematrix= (qts.T/3.335E5) # kg/s/m2 
+#            # but negative meltrate cant exist....
+#            # where heatflow is negative and meltrate is negative set meltrate=0
+#            #tempdel=np.array([tstep-meltratematrix[0] for tstep in meltratematrix]) # kg/s/m2 ~ mm/s
+#            meltratematrix[meltratematrix<0]=0 # kg/s/m2 
+#            # change in meltrate
+#            deltameltrate=np.array([tstep-meltratematrix[0] for tstep in meltratematrix]) # kg/s/m2 ~ mm/s
+#            #meltrate just within glacier 
+#            glacmeltrate=meltratematrix.T[(X>glaclim[0]) & (X<glaclim[1])].T  # kg/s/m2 ~ mm/s
+#            #glacmeltrate=meltratematrix.T[X<2500].T  # kg/s/m2 ~ mm/s
+#            print np.max(glacmeltrate)
+#            #change in meltrate within glacier 
+#            deltaglacmeltrate=deltameltrate.T[(X>glaclim[0]) & (X<glaclim[1])].T # kg/s/m2 ~ mm/s
+#            #deltaglacmeltrate=deltameltrate.T[X<2500].T # kg/s/m2 ~ mm/s
+#            i=0
+#            meltrate=np.zeros(len(tq))
+#            for t in tq:
+#                for x,A,r in zip(X,Area,meltratematrix[i]):
+#                    if r > 0 and x < glaclim[1] and x > glaclim[0]:
+#                        meltrate[i]= meltrate[i] + (r*A) # kg/s
+#                i=i+1 
+#            meltrate_mmpyr= (meltrate*yrsec)/((np.pi*(glaclim[1]**2))-(np.pi*(glaclim[0]**2))) # kg/yr/m2 ~ mm/yr     
+#            #meltrate_mmpyr= (meltrate*yrsec)/(np.pi*(2500**2)) # kg/yr/m2 ~ mm/yr
         else:
             unit='kg/s'
          
         # plottings
-        tscale=tq/yrsec
-        if logt:
-            tscale=np.log10(tscale) 
         ## a quick plot of flows into atmosphere at X and time.
         plt.figure()
         plt.pcolormesh(X,tscale,qts.T, rasterized=True,cmap='rainbow') #W or (ks/s) /m2
@@ -422,72 +431,175 @@ def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, 
         results.write_vtk(geo,mod+'_output.vtk',grid=grid,flows=True)
         os.chdir('..')
     
-    plt.figure()
-    plt.pcolormesh(X,tscale,meltratematrix, rasterized=True,cmap='rainbow') # mm/s
-    cbar=plt.colorbar(format='%.1e')
-    cbar.set_label(r'Melt rate (kg/s/m$^{2}$)')
-    #plt.xlim((0,2500))
-    plt.ylim(tscale.min(),tscale.max())
-    plt.xlabel('Distance from centre axis (m)')
-    plt.ylabel('Time (yrs)')    
-    plt.title('Melt rate')
-    plt.tight_layout()
-    if save:
-        plt.savefig('results/'+mod+'_meltrate_.pdf',dpi=400)  
-    
-    plt.figure()
-    plt.pcolormesh(X[X<2500],tscale,glacmeltrate, rasterized=True,cmap='rainbow')#, vmax=3.2e-4) # mm/s
-    cbar=plt.colorbar(format='%.1e')
-    cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
-    #plt.xlim((0,250))
-    plt.ylim(tscale.min(),tscale.max())
-    plt.xlabel('Distance from centre axis (m)')
-    plt.ylabel('Time (yrs)')    
-    plt.title('Melt rate')
-    plt.tight_layout()
-    if save:
-        plt.savefig('results/'+mod+'_glac_meltrate_.pdf',dpi=400)  
-       
-    plt.figure()
-    plt.pcolormesh(X,tscale,deltameltrate, rasterized=True,cmap='rainbow') # mm/s
-    cbar=plt.colorbar(format='%.1e')
-    cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
-    #plt.xlim((0,2500))
-    plt.ylim(tscale.min(),tscale.max())
-    plt.xlabel('Distance from centre axis (m)')
-    plt.ylabel('Time (yrs)') 
-    plt.title('Change in melt rate')
-    plt.tight_layout()
-    if save:
-        plt.savefig('results/'+mod+'_meltrate_delta_.pdf',dpi=400)  
-    
-    plt.figure()
-    plt.pcolormesh(X[X<2500],tscale,deltaglacmeltrate, rasterized=True,cmap='rainbow') # mm/s
-    cbar=plt.colorbar(format='%.1e')
-    cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
-    plt.xlim((0,2500))
-    plt.ylim(tscale.min(),tscale.max())
-    plt.title('Change in glacial melt rate')
-    plt.tight_layout()
-    if save:
-        plt.savefig('results/'+mod+'_glacmeltrate_delta_.pdf',dpi=400) 
+#    plt.figure()
+#    plt.pcolormesh(X,tscale,meltratematrix, rasterized=True,cmap='rainbow') # mm/s
+#    cbar=plt.colorbar(format='%.1e')
+#    cbar.set_label(r'Melt rate (kg/s/m$^{2}$)')
+#    #plt.xlim((0,2500))
+#    plt.ylim(tscale.min(),tscale.max())
+#    plt.xlabel('Distance from centre axis (m)')
+#    plt.ylabel('Time (yrs)')    
+#    plt.title('Melt rate')
+#    plt.tight_layout()
+#    if save:
+#        plt.savefig('results/'+mod+'_meltrate_.pdf',dpi=400)  
+#    
+#    plt.figure()
+#    plt.pcolormesh(X[X<2500],tscale,glacmeltrate, rasterized=True,cmap='rainbow')#, vmax=3.2e-4) # mm/s
+#    cbar=plt.colorbar(format='%.1e')
+#    cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
+#    #plt.xlim((0,250))
+#    plt.ylim(tscale.min(),tscale.max())
+#    plt.xlabel('Distance from centre axis (m)')
+#    plt.ylabel('Time (yrs)')    
+#    plt.title('Melt rate')
+#    plt.tight_layout()
+#    if save:
+#        plt.savefig('results/'+mod+'_glac_meltrate_.pdf',dpi=400)  
+#       
+#    plt.figure()
+#    plt.pcolormesh(X,tscale,deltameltrate, rasterized=True,cmap='rainbow') # mm/s
+#    cbar=plt.colorbar(format='%.1e')
+#    cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
+#    #plt.xlim((0,2500))
+#    plt.ylim(tscale.min(),tscale.max())
+#    plt.xlabel('Distance from centre axis (m)')
+#    plt.ylabel('Time (yrs)') 
+#    plt.title('Change in melt rate')
+#    plt.tight_layout()
+#    if save:
+#        plt.savefig('results/'+mod+'_meltrate_delta_.pdf',dpi=400)  
+#    
+#    plt.figure()
+#    plt.pcolormesh(X[X<2500],tscale,deltaglacmeltrate, rasterized=True,cmap='rainbow') # mm/s
+#    cbar=plt.colorbar(format='%.1e')
+#    cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
+#    plt.xlim((0,2500))
+#    plt.ylim(tscale.min(),tscale.max())
+#    plt.title('Change in glacial melt rate')
+#    plt.tight_layout()
+#    if save:
+#        plt.savefig('results/'+mod+'_glacmeltrate_delta_.pdf',dpi=400) 
+#
+#    #############
+#    
+#    
+#    #np.savetxt("melt_time.txt", np.vstack(([tq], [meltrate],[meltrate_mpyr])).T)
+#       
+#    plt.figure()
+#    plt.plot(tscale,meltrate_mmpyr)
+#    #plt.xlim(0, 30000)
+#    plt.xlabel('Time (yrs)')
+#    plt.ylabel('Average melt rate at glacial base (mm/yr)')
+#    plt.title('Average basal meltrate')
+#    plt.tight_layout()
+#    if save:
+#        plt.savefig('results/'+mod+'_basalmelt.pdf')
 
-    #############
+def prod_flowmatrix(values):
+        X=[]
+        qts=[]
+        Area=[]
+        for x,a,q in values:
+            X.append(x)
+            qts.append(q)
+            Area.append(a)
+        inds=np.array(X).argsort()
+        X=np.array(X)[inds]
+        Area=np.array(Area)[inds]
+        qts=np.array(qts)[inds] # J/s/m2 or kg/s/m2 
+        #qin=np.ma.masked_array(qts,[qts>0]) # mask where flow is positive (i.e. out of the model)
+        #qout=np.ma.masked_array(qts,[qts<0]) # mask where flow is negative (i.e. in to the model)
+        return X,Area,qts#,qin,qout
     
+def calcmeltrate(qts,delref,X,tq,Area,glaclim=[250,2500]):
+        #unit='W'
+        meltratematrix=(qout.T/3.35E5) # kg/s/m2
+        #meltratematrix[meltratematrix<0]=0 # kg/s/m2
+        ssmelt=(ssqts/3.35E5)
+        # change in meltrate
+        deltameltrate=np.subtract(meltratematrix,ssmelt) # kg/s/m2 ~ mm/s
+        #meltrate just within glacier            
+        glacmeltrate=meltratematrix.T[(X>glaclim[0]) & (X<glaclim[1])].T  # kg/s/m2 ~ mm/s
+        #change in meltrate within glacier 
+        deltaglacmeltrate=deltameltrate.T[(X>glaclim[0]) & (X<glaclim[1])].T # kg/s/m2 ~ mm/s
+        meltrate=np.zeros(len(tscale))
+        glacArea=0
+        i=0
+        for t in tscale:
+            for x,A,r in zip(X,Area,meltratematrix[i]):
+                if r > 0 and x < glaclim[1] and x > glaclim[0]:
+                    meltrate[i]= meltrate[i] + (r*A) # kg/s
+                    glacArea=glacArea+A
+            i=i+1  
+        meltrate_mmpyr= (meltrate*yrsec)/((np.pi*(glaclim[1]**2))-(np.pi*(glaclim[0]**2))) # kg/yr/m2 ~ mm/yr 
+        
+        ####  plotsss
+        plt.figure()
+        plt.pcolormesh(X,tscale,meltratematrix, rasterized=True,cmap='rainbow') # mm/s
+        cbar=plt.colorbar(format='%.1e')
+        cbar.set_label(r'Melt rate (kg/s/m$^{2}$)')
+        #plt.xlim((0,2500))
+        plt.ylim(tscale.min(),tscale.max())
+        plt.xlabel('Distance from centre axis (m)')
+        plt.ylabel('Time (yrs)')    
+        plt.title('Melt rate')
+        plt.tight_layout()
+        if save:
+            plt.savefig('results/'+mod+'_meltrate_.pdf',dpi=400)  
+        
+        plt.figure()
+        plt.pcolormesh(X[X<2500],tscale,glacmeltrate, rasterized=True,cmap='rainbow')#, vmax=3.2e-4) # mm/s
+        cbar=plt.colorbar(format='%.1e')
+        cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
+        #plt.xlim((0,250))
+        plt.ylim(tscale.min(),tscale.max())
+        plt.xlabel('Distance from centre axis (m)')
+        plt.ylabel('Time (yrs)')    
+        plt.title('Melt rate')
+        plt.tight_layout()
+        if save:
+            plt.savefig('results/'+mod+'_glac_meltrate_.pdf',dpi=400)  
+           
+        plt.figure()
+        plt.pcolormesh(X,tscale,deltameltrate, rasterized=True,cmap='rainbow') # mm/s
+        cbar=plt.colorbar(format='%.1e')
+        cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
+        #plt.xlim((0,2500))
+        plt.ylim(tscale.min(),tscale.max())
+        plt.xlabel('Distance from centre axis (m)')
+        plt.ylabel('Time (yrs)') 
+        plt.title('Change in melt rate')
+        plt.tight_layout()
+        if save:
+            plt.savefig('results/'+mod+'_meltrate_delta_.pdf',dpi=400)  
+        
+        plt.figure()
+        plt.pcolormesh(X[X<2500],tscale,deltaglacmeltrate, rasterized=True,cmap='rainbow') # mm/s
+        cbar=plt.colorbar(format='%.1e')
+        cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
+        plt.xlim((0,2500))
+        plt.ylim(tscale.min(),tscale.max())
+        plt.title('Change in glacial melt rate')
+        plt.tight_layout()
+        if save:
+            plt.savefig('results/'+mod+'_glacmeltrate_delta_.pdf',dpi=400) 
     
-    #np.savetxt("melt_time.txt", np.vstack(([tq], [meltrate],[meltrate_mpyr])).T)
-       
-    plt.figure()
-    plt.plot(tscale,meltrate_mmpyr)
-    #plt.xlim(0, 30000)
-    plt.xlabel('Time (yrs)')
-    plt.ylabel('Average melt rate at glacial base (mm/yr)')
-    plt.title('Average basal meltrate')
-    plt.tight_layout()
-    if save:
-        plt.savefig('results/'+mod+'_basalmelt.pdf')
-    
-
+        #############
+        
+        
+        #np.savetxt("melt_time.txt", np.vstack(([tq], [meltrate],[meltrate_mpyr])).T)
+           
+        plt.figure()
+        plt.plot(tscale,meltrate_mmpyr)
+        #plt.xlim(0, 30000)
+        plt.xlabel('Time (yrs)')
+        plt.ylabel('Average melt rate at glacial base (mm/yr)')
+        plt.title('Average basal meltrate')
+        plt.tight_layout()
+        if save:
+            plt.savefig('results/'+mod+'_basalmelt.pdf')
+        #return
 
         
 def surfaceflow(atmoscells,atmosconns,results=None,grid=None,flow='FLOH'):
