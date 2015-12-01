@@ -328,13 +328,13 @@ def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, 
 #        X=np.array(X)[inds]
 #        Area=np.array(Area)[inds]
 #        qts=np.array(qts)[inds] # J/s/m2 or kg/s/m2 
-#        qin=np.ma.masked_array(qts,[qts>0]) # mask where flow is positive (i.e. out of the model)
-#        qout=np.ma.masked_array(qts,[qts<0]) # mask where flow is negative (i.e. in to the model)
+        qin=np.ma.masked_array(qts,[qts>0]) # mask where flow is positive (i.e. out of the model)
+        qout=np.ma.masked_array(qts,[qts<0]) # mask where flow is negative (i.e. in to the model)
        # totq=np.sum(np.multiply(qts.T,Area),axis=1)
             
         if flow=='FLOH' or flow=='FHEAT': # calculate meltrate etc.
             unit='W'
-            calcmeltrate(qts,X,times,Area,glaclim=[250,2500])
+            calcmeltrate(qout,X,times,Area,glaclim=[250,2500])
 #            meltratematrix= (qts.T/3.335E5) # kg/s/m2 
 #            # but negative meltrate cant exist....
 #            # where heatflow is negative and meltrate is negative set meltrate=0
