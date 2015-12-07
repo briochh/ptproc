@@ -21,13 +21,14 @@ t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
 model='Cota20150811_1_m2'
-version=4
+version=1
 yrsec=365.25*24*3600
 models=[model,model+'_ptb'+str(version)]#,model+'_rtn']
 times={}
 ts=np.zeros(1)
 glaclim=[250.,2500.]
-wd='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'
+#wd='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'
+wd=os.path.expanduser("~")+'/GoogleDrive/Cotopaxi/'
 #wd='C:/Users/glbjch/Local Documents/Work/Modelling/Molly project/'
 if save:
     os.chdir(wd+model)
@@ -61,22 +62,14 @@ for flow in flows:
         ts=ts[1:]
     ptbtimes=ts[prelen:] # to just plot after perturbation
     tscale=np.subtract(ptbtimes,ptbtimes[0])/yrsec
+    os.chdir(stitchpath)
     #if logt:
     #    tscale=np.log10(tscale) 
-    X=[]
-    qts=[]
-    Area=[]
-    for x,a,q in stitch.values():
-        X.append(x)
-        qts.append(q[prelen:])
-        Area.append(a)
-    inds=np.array(X).argsort()
-    X=np.array(X)[inds]
-    Area=np.array(Area)[inds]
-    qts=np.array(qts)[inds] # J/s/m2 or kg/s/m2 
-    qin=np.ma.masked_array(qts,[qts>0]) # mask where flow is positive (i.e. out of the model)
-    qout=np.ma.masked_array(qts,[qts<0]) # mask where flow is negative (i.e. in to the model)
-    
+    # produce flow matrix (qts IN KG/S/M2 OR W/MS)
+    X,Area,qts = ipt.prod_flowmatrix(stitch.values(),prelen) 
+    #qin=qts.clip(max=0.)#np.ma.masked_array(qts,[qts>=0.]) # mask where flow is positive (i.e. out of the model)
+    #qout=qts.clip(min=0.)#np.ma.masked_array(qts,[qts<=0.]) # mask where flow is negative (i.e. in to the model)
+
     X=[]
     ssqts=[]
     for x,a,q in data[str(models[0])].values():
@@ -87,150 +80,31 @@ for flow in flows:
     ssqts=np.array(ssqts)[xinds] # J/s/m2 or kg/s/m2
     #ssqtsout=np.copy(ssqts)
     #ssqtsin=np.copy(ssqts)
-    #ssqtsout[ssqts<0]=0
-    #ssqtsin[ssqts>0]=0
+    #ssqtsout=ssqts.clip(min=0)
+    #ssqtsin=ssqts.clip(max=0)
     
     if flow=='FLOH': # calculate meltrate etc.
         unit='W'
-        meltratematrix=(qout.T/3.35E5) # kg/s/m2
-        #meltratematrix[meltratematrix<0]=0 # kg/s/m2
-        ssmelt=(ssqts/3.35E5)
-        # change in meltrate
-        deltameltrate=np.subtract(meltratematrix,ssmelt) # kg/s/m2 ~ mm/s
-        #meltrate just within glacier            
-        glacmeltrate=meltratematrix.T[(X>glaclim[0]) & (X<glaclim[1])].T  # kg/s/m2 ~ mm/s
-        #change in meltrate within glacier 
-        deltaglacmeltrate=deltameltrate.T[(X>glaclim[0]) & (X<glaclim[1])].T # kg/s/m2 ~ mm/s
-        meltrate=np.zeros(len(tscale))
-        glacArea=0
-        i=0
-        for t in tscale:
-            for x,A,r in zip(X,Area,meltratematrix[i]):
-                if r > 0 and x < glaclim[1] and x > glaclim[0]:
-                    meltrate[i]= meltrate[i] + (r*A) # kg/s
-                    glacArea=glacArea+A
-            i=i+1  
-        meltrate_mmpyr= (meltrate*yrsec)/((np.pi*(glaclim[1]**2))-(np.pi*(glaclim[0]**2))) # kg/yr/m2 ~ mm/yr 
+        ipt.calcmeltrate(mod,qts,ssqts,X,tscale,Area,
+                         glaclim=[250.,2500.],save=save) 
     else: unit ='kg/s'
     
     ## a quick plot of flows into atmosphere at X and time.
-    plt.figure()
-    plt.pcolormesh(X,tscale,qts.T, rasterized=True,cmap='rainbow') #W or (ks/s) /m2
-    cbar=plt.colorbar(format='%.1e')
-    cbar.set_label(flow + r' out of the model ('+ unit + r'/m$^{2}$)')
-    #plt.xlim(0,2500)
-    plt.ylim(tscale.min(),tscale.max())
-    plt.title('Flow ('+flow+') out of the model')
-    plt.xlabel('Distance from axial centre (m)')
-    plt.ylabel('Time (yrs)')
-    if save:
-        plt.savefig(stitchpath+model+'_'+flow+'.pdf',dpi=400)
-    
-    plt.figure()
-    plt.pcolormesh(X,tscale,np.subtract(qout.T,ssqts), rasterized=True,cmap='rainbow') #W or (ks/s) /m2
-    cbar=plt.colorbar(format='%.1e')
-    cbar.set_label('Change in '+ flow + r' out of the model ('+ unit + r'/m$^{2}$)')
-    #plt.xlim(0,2500)
-    plt.ylim(tscale.min(),tscale.max())
-    plt.title('Change in flow ('+flow+') out of the model')
-    plt.xlabel('Distance from axial centre (m)')
-    plt.ylabel('Time (yrs)')
-    if save:
-        plt.savefig(stitchpath+model+'_'+'delout_'+flow+'.pdf',dpi=400)
-
-    
-    plt.figure()
-    plt.pcolormesh(X,tscale,-np.subtract(qin.T,ssqts), rasterized=True,cmap='rainbow') #W or (ks/s) /m2
-    cbar=plt.colorbar(format='%.1e')
-    cbar.set_label('Change in '+ flow + r' in to the model ('+ unit + r'/m$^{2}$)')
-    #plt.xlim(0,2500)
-    plt.ylim(tscale.min(),tscale.max())
-    plt.title('Change in flow ('+flow+') in to the model')
-    plt.xlabel('Distance from axial centre (m)')
-    plt.ylabel('Time (yrs)')
-    if save:
-        plt.savefig(stitchpath+model+'_'+'delin_'+flow+'.pdf',dpi=400)
+    ipt.plotflows(mod,flow,qts,X,tscale,Area,unit,ssqts,glaclim,save=save)
     
     if save:
-        if os.path.isfile(stitchpath+flow+'.pkl'):
+        if os.path.isfile(flow+'.pkl'):
             print(flow+' flow alreay pickled')
         else:
-            ptg.save_obj(stitch,stitchpath+flow+'.pkl')  
+            ptg.save_obj(stitch,flow+'.pkl')  
         if os.path.isfile(stitchpath+'alltime.pkl'):
             print('time alreay pickled')
         else:
-            ptg.save_obj(ts,stitchpath+'alltime.pkl')
-        if os.path.isfile(stitchpath+'ptbtime.pkl'):
+            ptg.save_obj(ts,'alltime.pkl')
+        if os.path.isfile('ptbtime.pkl'):
             print('time alreay pickled')
         else:
-            ptg.save_obj(ts,stitchpath+'ptbtime.pkl')
-
-plt.figure()
-plt.pcolormesh(X,tscale,meltratematrix, rasterized=True,cmap='rainbow') # mm/s
-cbar=plt.colorbar(format='%.1e')
-cbar.set_label(r'Melt rate (kg/s/m$^{2}$)')
-#plt.xlim((0,2500))
-plt.ylim(tscale.min(),tscale.max())
-plt.xlabel('Distance from centre axis (m)')
-plt.ylabel('Time (yrs)')    
-plt.title('Melt rate')
-if save:
-    plt.savefig(stitchpath+model+'_'+'meltrate_.pdf',dpi=400)  
-   
-plt.figure()
-plt.pcolormesh(X,tscale,deltameltrate, rasterized=True,cmap='rainbow') # mm/s
-cbar=plt.colorbar(format='%.1e')
-cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
-#plt.xlim((0,2500))
-plt.ylim(tscale.min(),tscale.max())
-plt.xlabel('Distance from centre axis (m)')
-plt.ylabel('Time (yrs)') 
-plt.title('Change in melt rate')
-if save:
-    plt.savefig(stitchpath+model+'_'+'meltrate_delta_.pdf',dpi=400)  
-
-plt.figure()
-plt.pcolormesh(X[(X>glaclim[0]) & (X<glaclim[1])],tscale,deltaglacmeltrate, rasterized=True,cmap='rainbow') # mm/s
-cbar=plt.colorbar(format='%.1e')
-cbar.set_label(r'Change in melt rate (kg/s/m$^{2}$)')
-plt.xlim((0,2500))
-plt.ylim(tscale.min(),tscale.max())
-plt.title('Change in glacial melt rate')
-if save:
-    plt.savefig(stitchpath+model+'_'+'glacmeltrate_delta_.pdf',dpi=400) 
-    
-plt.figure()
-plt.pcolormesh(X[(X>glaclim[0]) & (X<glaclim[1])],tscale,glacmeltrate, rasterized=True,cmap='rainbow',vmin=0.0)#, vmax=1.0e-3) # mm/s
-cbar=plt.colorbar(format='%.1e')
-cbar.set_label(r'Glacial melt rate (kg/s/m$^{2}$)')
-#plt.xlim((0,250))
-#plt.yscale('log')
-plt.ylim(tscale.min(),1000)
-plt.xlabel('Distance from centre axis (m)')
-plt.ylabel('Time (yrs)')    
-plt.title('Melt rate')
-plt.tight_layout()
-if save:
-    plt.savefig(stitchpath+model+'_glac_meltrate_.pdf',dpi=400)  
-    
-plt.figure()
-plt.plot(tscale,meltrate_mmpyr)
-#plt.xlim(0, 30000)
-plt.xlabel('Time (yrs)')
-plt.ylabel('Average melt rate at glacial base (mm/yr)')
-plt.title('Average basal meltrate')
-if save:
-    plt.savefig(stitchpath+model+'_'+'basalmelt.pdf')
-    
-plt.figure()
-plt.semilogx(tscale,meltrate*yrsec)
-plt.xlim(0.08, 100)
-plt.ylim(0,4.5e7) #!!!!!!!!
-plt.xlabel('Time (yrs)')
-plt.ylabel('Rate of mass loss from glacier (kg/yr)')
-plt.title('rate of mass loss')
-if save:
-    plt.savefig(stitchpath+model+'_'+'melt_ts.pdf')
+            ptg.save_obj(ts,'ptbtime.pkl')
     
         
 t1=time.clock()        

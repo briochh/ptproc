@@ -20,7 +20,7 @@ t0=tinit=time.clock()
 plt.close('all')
 
 bmod=''#'Cota20150619_1/Cota20150619_1_ptb/'
-mod='Cota20150811_1_ptb3' # define model name
+mod='Cota20150811_1_m2_ptb1' # define model name
 radial=True
 eos=3
 read=True ########### I N P U T #########################
@@ -36,14 +36,14 @@ readflow=True ########### I N P U T #########################
 #flowF_fname='results/FLOLIQ.pkl'
 
 save=True ########### I N P U T #########################
-savevtk=True ########### I N P U T #########################
+savevtk=False ########### I N P U T #########################
 if eos==1:
     flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
 else: flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
-#os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Molly project/'+bmod+'/'+mod)
-os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+bmod+'/'+mod)    
+os.chdir(os.path.expanduser("~")+'/GoogleDrive/Cotopaxi/'+bmod+'/'+mod)
+#os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+bmod+'/'+mod)    
 if not os.path.exists('results'): 
     os.makedirs('results')   
     
