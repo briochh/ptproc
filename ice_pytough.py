@@ -415,7 +415,7 @@ def plotflows(mod,flow,qts,X,tscale,Area,unit,ssqts,glaclim=[250.,2500.],save=Tr
     plt.pcolormesh(X[X<glaclim[0]],tscale,np.ma.masked_array(craterflow,[craterflow<0]).T, rasterized=True,cmap='rainbow') # mm/s
     cbar=plt.colorbar(format='%.1e')
     cbar.set_label('Flow ('+flow+') at crater')
-    plt.xlim((0,2500))
+    plt.xlim((0,glaclim[0]))
     plt.ylim(tscale.min(),tscale.max())
     plt.title('Crater flow ('+flow+')')
     
@@ -478,7 +478,7 @@ def convert2rate(matrix,times,Xlimits,Areas,Xlocs):
             for x,A,r in zip(Xlocs,Areas,matrix[i]):
                 if r > 0 and x < Xlimits[1] and x > Xlimits[0]:
                     timeseries[i]= timeseries[i] + (r*A) # kg/s or W
-                    TotArea=TotArea+A
+                    if i==0: TotArea=TotArea+A
             i+=1
     return timeseries,TotArea
 
@@ -505,7 +505,7 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
 #                    meltrate[i]= meltrate[i] + (r*A) # kg/s
 #                    glacArea=glacArea+A
 #            i=i+1  
-        meltrate_mmpyr= (meltrate*yrsec)/((np.pi*(glaclim[1]**2))-(np.pi*(glaclim[0]**2))) # kg/yr/m2 ~ mm/yr 
+        meltrate_mmpyr= (meltrate*yrsec)/glacArea#((np.pi*(glaclim[1]**2))-(np.pi*(glaclim[0]**2))) # kg/yr/m2 ~ mm/yr 
         
         ####  plotsss
         plt.figure()
@@ -561,7 +561,7 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
         #############
         
         
-        #np.savetxt("melt_time.txt", np.vstack(([tq], [meltrate],[meltrate_mpyr])).T)
+        np.savetxt("melt_time.txt", np.vstack(([tscale], [meltrate],[meltrate_mmpyr])).T)
            
         plt.figure()
         plt.plot(tscale,meltrate_mmpyr)
@@ -572,6 +572,16 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
         plt.tight_layout()
         if save:
             plt.savefig(mod+'_basalmelt.pdf')
+            
+        plt.figure()
+        plt.semilogx(tscale,meltrate*yrsec)
+        plt.xlim(0.08, 100)
+        plt.ylim(0,4.5e7) #!!!!!!!!
+        plt.xlabel('Time (yrs)')
+        plt.ylabel('Rate of mass loss from glacier (kg/yr)')
+        plt.title('rate of mass loss')
+        if save:
+            plt.savefig(mod+'_melt_ts.pdf')
         #return
 
         

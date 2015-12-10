@@ -20,15 +20,15 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Cota20150811_1_m2'
-version=1
+model='Coto20150911_1'
+version=5
 yrsec=365.25*24*3600
 models=[model,model+'_ptb'+str(version)]#,model+'_rtn']
 times={}
 ts=np.zeros(1)
 glaclim=[250.,2500.]
-#wd='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'
-wd=os.path.expanduser("~")+'/GoogleDrive/Cotopaxi/'
+wd='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'
+#wd=os.path.expanduser("~")+'/GoogleDrive/Cotopaxi/'
 #wd='C:/Users/glbjch/Local Documents/Work/Modelling/Molly project/'
 if save:
     os.chdir(wd+model)

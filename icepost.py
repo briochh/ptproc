@@ -20,8 +20,8 @@ t0=tinit=time.clock()
 plt.close('all')
 
 bmod=''#'Cota20150619_1/Cota20150619_1_ptb/'
-mod='Cota20150811_1_m2_ptb1' # define model name
-radial=True
+mod='Coto20150911_1' # define model name
+radial=False
 eos=3
 read=True ########### I N P U T #########################
 readgeo=True ########### I N P U T #########################
@@ -42,8 +42,8 @@ if eos==1:
 else: flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
-os.chdir(os.path.expanduser("~")+'/GoogleDrive/Cotopaxi/'+bmod+'/'+mod)
-#os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+bmod+'/'+mod)    
+#os.chdir(os.path.expanduser("~")+'/GoogleDrive/Cotopaxi/'+bmod+'/'+mod)
+os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+bmod+'/'+mod)    
 if not os.path.exists('results'): 
     os.makedirs('results')   
     
