@@ -485,7 +485,7 @@ def convert2rate(matrix,times,Xlimits,Areas,Xlocs):
 def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=False):
         #unit='W'
         qout=qts.clip(min=0)
-        yrsec=365.25*24*3600
+        yrsec=365.25*24.*3600.
         meltratematrix=(qout.T/3.34E5) # kg/s/m2
         #meltratematrix[meltratematrix<0]=0 # kg/s/m2
         ssmelt=(ssqts.clip(min=0.)/3.34E5)
@@ -496,6 +496,7 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
         #change in meltrate within glacier 
         deltaglacmeltrate=deltameltrate.T[(X>glaclim[0]) & (X<glaclim[1])].T # kg/s/m2 ~ mm/s
         meltrate,glacArea=convert2rate(meltratematrix,tscale,glaclim,Area,X)
+        
 #        meltrate=np.zeros(len(tscale))
 #        glacArea=0
 #        i=0
@@ -506,7 +507,12 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
 #                    glacArea=glacArea+A
 #            i=i+1  
         meltrate_mmpyr= (meltrate*yrsec)/glacArea#((np.pi*(glaclim[1]**2))-(np.pi*(glaclim[0]**2))) # kg/yr/m2 ~ mm/yr 
-        
+        meltvol=[rate*((tscale[i+1]-tscale[i])*yrsec)/1000. for rate,i in zip(meltrate,range(len(tscale)-2))]
+        meltvolcum=np.cumsum(meltvol)
+        basemeltlvol=meltrate[0]*(tscale*yrsec)/1000.+meltvolcum[0]
+        difmeltvolcum=np.subtract(meltvolcum,basemeltlvol[0:-2])
+        ind=np.where(difmeltvolcum>=1e5)[0][0]
+        print "time when melt volume is 1e5 m3 =",tscale[ind]
         ####  plotsss
         plt.figure()
         plt.pcolormesh(X,tscale,meltratematrix, rasterized=True,cmap='rainbow') # mm/s
@@ -563,19 +569,32 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
         
         np.savetxt("melt_time.txt", np.vstack(([tscale], [meltrate],[meltrate_mmpyr])).T)
            
+#        plt.figure()
+#        plt.plot(tscale,meltrate_mmpyr)
+#        #plt.xlim(0, 30000)
+#        plt.xlabel('Time (yrs)')
+#        plt.ylabel('Average melt rate at glacial base (mm/yr)')
+#        plt.title('Average basal meltrate')
+#        plt.tight_layout()
+#        if save:
+#            plt.savefig(mod+'_basalmelt.pdf')
+            
         plt.figure()
-        plt.plot(tscale,meltrate_mmpyr)
-        #plt.xlim(0, 30000)
+        plt.semilogy(tscale[0:-2],meltvolcum)
+        plt.plot(tscale,basemeltlvol)
+        plt.plot(tscale[0:-2],difmeltvolcum)
+        plt.xlim(0, 1000)
+        plt.ylim(0,1e7)
         plt.xlabel('Time (yrs)')
-        plt.ylabel('Average melt rate at glacial base (mm/yr)')
-        plt.title('Average basal meltrate')
+        plt.ylabel('cumulative melt volume')
+        #plt.title('Average basal meltrate')
         plt.tight_layout()
         if save:
             plt.savefig(mod+'_basalmelt.pdf')
             
         plt.figure()
-        plt.semilogx(tscale,meltrate*yrsec)
-        plt.xlim(0.08, 100)
+        plt.plot(tscale,meltrate*yrsec)
+        plt.xlim(0.08, 1000)
         plt.ylim(0,4.5e7) #!!!!!!!!
         plt.xlabel('Time (yrs)')
         plt.ylabel('Rate of mass loss from glacier (kg/yr)')
