@@ -20,7 +20,7 @@ import copy
 t0=tinit=time.clock()
 plt.close('all')
 save=True ########### I N P U T #########################
-model='Coto20150911_1'
+model='Coto20150911_1_m2'
 version=5
 yrsec=365.25*24*3600
 models=[model,model+'_ptb'+str(version)]#,model+'_rtn']

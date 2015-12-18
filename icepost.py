@@ -35,7 +35,7 @@ readflow=True ########### I N P U T #########################
 #readflowF=True ########### I N P U T #########################
 #flowF_fname='results/FLOLIQ.pkl'
 
-save=True ########### I N P U T #########################
+save=False ########### I N P U T #########################
 savevtk=False ########### I N P U T #########################
 if eos==1:
     flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
