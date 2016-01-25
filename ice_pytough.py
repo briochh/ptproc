@@ -19,6 +19,9 @@ import time
 import os
 import pytoughgrav as ptg
 import matplotlib.pyplot as plt
+from matplotlib.ticker import LogLocator
+import copy
+import matplotlib.colors
 
 def icegeo( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
           origin = ([0,0,0]), xcells = None,  zcells = None,
@@ -291,7 +294,7 @@ def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, 
         raise TypeError('results needs to be type t2listing. Type ' + str(type(results)) + ' found. You idiot')
     elif results is None:
         print('No Results files (flow.out) passed. please read flow2.out')
-    results=results   
+    #results=results   
     width=geo.bounds[1][1]-geo.bounds[0][1]   
     yrsec=365.25*3600*24
     mod=modelname
@@ -361,7 +364,7 @@ def plotflows(mod,flow,qts,X,tscale,Area,unit,ssqts,glaclim=[250.,2500.],save=Tr
     craterflow=qts[X<glaclim[0]] # W/m2 or kg/s/m2
     glacflow=qts[(X<glaclim[1]) & (X>glaclim[0])]   
     craterflowts,_ =convert2rate(qts.T,tscale,[0,250],Area,X)
-    glacflowts,_ =convert2rate(qts.T,tscale,glaclim,Area,X)
+    glacflowts,glac_contactArea =convert2rate(qts.T,tscale,glaclim,Area,X)
     delqout=np.subtract(qout.T,ssqout) # kg/s/m2 ~ mm/s
     delqin=-np.subtract(qin.T,ssqin) 
     # plottings
@@ -431,26 +434,93 @@ def plotflows(mod,flow,qts,X,tscale,Area,unit,ssqts,glaclim=[250.,2500.],save=Tr
         crmesh.savefig(mod+'_'+flow+'_craterflow.pdf',dpi=400) 
         np.savetxt(mod+'_'+flow+'_CraterFlow.txt',np.vstack(([tscale],[craterflowts])).T)
         
+    vmax=5.0 # allow quick change colour limit
+    #vmax=320
+    fmat='%.1'  # allow quick change of number format
     
     glacmesh=plt.figure()
-    plt.pcolormesh(X[(X<glaclim[1]) & (X>glaclim[0])],tscale,np.ma.masked_array(glacflow,[glacflow<0]).T, rasterized=True,cmap='rainbow') # mm/s
-    cbar=plt.colorbar(format='%.1e')
-    cbar.set_label('Flow ('+flow+') into galcier')
+    plt.pcolormesh(X[(X<glaclim[1]) & (X>glaclim[0])],tscale,np.ma.masked_array(glacflow,[glacflow<0]).T, rasterized=True,cmap='rainbow',vmin=0.0,vmax=vmax) # mm/s
+    cbar=plt.colorbar(format=fmat+'f')
+    cbar.set_label('Flow ('+flow+') into galcier ('+ unit + r'm$^{-2}$)')
     plt.xlim((0,2500))
-    plt.ylim(tscale.min(),tscale.max())
+    plt.ylim(0,1000) # allow focus to particular timescale
+    plt.ylabel('Time (yrs)')
+    plt.xlabel('Distance x (m)')
+    #plt.ylim(tscale.min(),tscale.max())
     plt.title('Glacier flow ('+flow+')')
     
-    glacts=plt.figure()
-    plt.plot(tscale,glacflowts)
-    #plt.xlim(0.08, 100)
+    
+    #glacts=plt.figure()
+    glacts,ax1=plt.subplots()
+    plot_ax1, = ax1.plot(tscale,glacflowts)
+    ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
     #plt.ylim(craterflowts.min(),craterflowts.max()) #!!!!!!!!
-    plt.xlabel('Time (yrs)')
-    plt.ylabel('Glacier Flow ('+unit+')')
+    ax1.set_xlabel('Time (yrs)')
+    ax1.set_ylabel('Glacier Flow ('+unit+')')
+    ax1.tick_params(axis='y', colors=plot_ax1.get_color())
+    ax1.yaxis.label.set_color(plot_ax1.get_color())
+    ax1.spines['left'].set_color(plot_ax1.get_color())
+    ax1.yaxis.get_offset_text().set_color(plot_ax1.get_color())
+    ax2=plt.twinx(ax1)
+    plot_ax2, = ax2.plot(tscale,glacflowts/glac_contactArea,'g')
+    ax1.set_xlim(0, 1000)
+    ax1.set_ylim(0, 7.0e5)
+    ax2.set_ylim(0, 3.5e-2)
+    #ax2.set_ylim(0, 250)
+    ax2.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,3))
+    ax2.tick_params(axis='y', colors=plot_ax2.get_color())
+    ax2.yaxis.label.set_color(plot_ax2.get_color())
+    ax2.spines['right'].set_color(plot_ax2.get_color())  
+    ax2.yaxis.get_offset_text().set_color(plot_ax2.get_color())
+    ax2.set_ylabel(r'Flux to glacier ('+ unit + r'm$^{-2}$)')
     plt.title('Glacier flow ('+flow+')')
     if save:
-        glacts.savefig(mod+'_'+flow+'_glacier_ts.pdf',dpi=400)
-        glacmesh.savefig(mod+'_'+flow+'_glacierflow.pdf',dpi=400) 
+        glacts.savefig(mod+'_'+flow+'_glacier_ts.pdf',dpi=400,bbox_inches='tight')
+        glacmesh.savefig(mod+'_'+flow+'_glacierflow.pdf',dpi=400,bbox_inches='tight') 
         np.savetxt(mod+'_'+flow+'_GlacFlow.txt',np.vstack(([tscale],[glacflowts])).T)
+        
+    glacmesh200,ax200=plt.subplots()
+    im=ax200.pcolormesh(X[(X<glaclim[1]) & (X>glaclim[0])],
+                     tscale,np.ma.masked_array(glacflow,[glacflow<0]).T,
+                     rasterized=True,cmap='rainbow',
+                     norm=matplotlib.colors.LogNorm(vmin=1e-2,vmax=vmax)) # mm/s
+
+    cbar=glacmesh200.colorbar(im, ticks=LogLocator(subs=range(10)))#,format=fmat+'e')
+    cbar.set_label('Flow ('+flow+') into galcier ('+ unit + r'm$^{-2}$)')
+    ax200.set_xlim((0,2500))
+    ax200.set_ylim(0,200)
+    ax200.set_ylabel('Time (yrs)')
+    ax200.set_xlabel('Distance x (m)')
+    #plt.ylim(tscale.min(),tscale.max())
+    ax200.set_title('Glacier flow ('+flow+')')
+    
+    glacts200,ax1=plt.subplots()
+    plot_ax1, = ax1.plot(tscale,glacflowts)
+    ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
+    #plt.ylim(craterflowts.min(),craterflowts.max()) #!!!!!!!!
+    ax1.set_xlabel('Time (yrs)')
+    ax1.set_ylabel('Glacier Flow ('+unit+')')
+    ax1.tick_params(axis='y', colors=plot_ax1.get_color())
+    ax1.yaxis.label.set_color(plot_ax1.get_color())
+    ax1.spines['left'].set_color(plot_ax1.get_color())
+    ax1.yaxis.get_offset_text().set_color(plot_ax1.get_color())
+    ax2=plt.twinx(ax1)
+    plot_ax2, = ax2.plot(tscale,glacflowts/glac_contactArea,'g')
+    ax1.set_xlim(0, 200)
+    ax1.set_ylim(0, 5.0e5)
+    ax2.set_ylim(0, 2.5e-2)
+    #ax2.set_ylim(0, 250)
+    ax2.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,3))
+    ax2.tick_params(axis='y', colors=plot_ax2.get_color())
+    ax2.yaxis.label.set_color(plot_ax2.get_color())
+    ax2.spines['right'].set_color(plot_ax2.get_color())  
+    ax2.yaxis.get_offset_text().set_color(plot_ax2.get_color())
+    ax2.set_ylabel(r'Flux to glacier ('+ unit + r'm$^{-2}$)')
+    plt.title('Glacier flow ('+flow+')')
+    if save:
+        glacts200.savefig(mod+'_'+flow+'_glacier_ts200.pdf',dpi=400,bbox_inches='tight')
+        glacmesh200.savefig(mod+'_'+flow+'_glacierflow200.pdf',dpi=400,bbox_inches='tight') 
+
 
 def prod_flowmatrix(values,prelen=0):
         X=[]
@@ -511,8 +581,11 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
         meltvolcum=np.cumsum(meltvol)
         basemeltlvol=meltrate[0]*(tscale*yrsec)/1000.+meltvolcum[0]
         difmeltvolcum=np.subtract(meltvolcum,basemeltlvol[0:-2])
-        ind=np.where(difmeltvolcum>=1e5)[0][0]
-        print "time when melt volume is 1e5 m3 =",tscale[ind]
+        if difmeltvolcum.max() >=1.0e5:
+            ind=np.where(difmeltvolcum>=1e5)[0][0]
+            print "time when melt volume is 1e5 m3 =",tscale[ind]
+        else:
+            print "Melt volume never exceeds 1e5 m3"
         ####  plotsss
         plt.figure()
         plt.pcolormesh(X,tscale,meltratematrix, rasterized=True,cmap='rainbow') # mm/s
@@ -593,11 +666,11 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
             plt.savefig(mod+'_basalmelt.pdf')
             
         plt.figure()
-        plt.plot(tscale,meltrate*yrsec)
-        plt.xlim(0.08, 1000)
-        plt.ylim(0,4.5e7) #!!!!!!!!
+        plt.plot(tscale,3600.*meltrate/20.)
+        plt.xlim(0, 25)
+        #plt.ylim(0,4.5e7) #!!!!!!!!
         plt.xlabel('Time (yrs)')
-        plt.ylabel('Rate of mass loss from glacier (kg/yr)')
+        plt.ylabel('Rate of mass loss from glacier (m3/hour)')
         plt.title('rate of mass loss')
         if save:
             plt.savefig(mod+'_melt_ts.pdf')

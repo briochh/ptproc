@@ -20,8 +20,8 @@ t0=tinit=time.clock()
 plt.close('all')
 
 bmod=''#'Cota20150619_1/Cota20150619_1_ptb/'
-mod='Coto20150911_1' # define model name
-radial=False
+mod='Cota20150811_1_m2' # define model name
+radial=True
 eos=3
 read=True ########### I N P U T #########################
 readgeo=True ########### I N P U T #########################
@@ -58,6 +58,7 @@ if read:
     if readresults is True:
         print 'Reading results from '+ results_fname
         results=t2listing(results_fname)
+    else: results=None
     if readflow is True:
         if os.path.isfile('results/time.pkl'):
             times=ptg.load_obj('results/time.pkl')
