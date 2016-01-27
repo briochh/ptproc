@@ -45,7 +45,7 @@ else:
     mod='20150814_3_var1' ########### I N P U T #########################
     mods=['20150806_1_var1','20150806_2_var1' ,'20150814_4_var1' ,'20150814_3_var1' ,'20150814_1_var1' ,'20150814_2_var1' ,'20150806_4_var1','20150806_3_var1'  ]
 
-intype='rel' ########### I N P U T #########################
+intype='' ########### I N P U T #########################
 if intype is 'rel':
     infiles=['gravdiff'+str(n)+'.dat' for n in nums]#'axsym_int_microgal'+str(num)+'.dat' #'gravdiff1.dat')  ########### I N P U T #########################
 else:

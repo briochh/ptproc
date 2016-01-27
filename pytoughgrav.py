@@ -805,7 +805,7 @@ def readres( modelname, survey_points, save=False, savevtk=False, tough2_input=N
         #gcont=griddata(np.vstack((xs,zs)).T,np.array(dg/xzarea)*6.67e-3,(xi,zi),method='nearest')
         elcont=plt.figure(figsize=[8,3.6]) 
         plt.pcolormesh(xi,zi,gcont,shading='flat',edgecolor='face', rasterized=True)
-        plt.colorbar().set_label(r'Contribution to g (' + r'$\mu$'+'gal/m' + r'$^{2}$'+')')
+        plt.colorbar().set_label(r'Contribution to g (' + r'$\mu$'+'Gal/m' + r'$^{2}$'+')')
         plt.xlim((xs.min(),xs.max()))
         plt.ylim((zs.min(),zs.max()))
         
@@ -1013,7 +1013,7 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
         ax2.tick_params(axis='both',labelsize=18)
         ax3.tick_params(axis='both',labelsize=16)
         data, =ax1.plot(x,y,'-',label='data',linewidth=2)
-        ax1.set_ylabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
+        ax1.set_ylabel(r'$\Delta g$ ($\mu$Gal)',fontsize=18)
         ax1.axis([0.0, 100,-200,150])
         
         color_cycle=ax2._get_lines.color_cycle
@@ -1049,13 +1049,13 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
             ax3.plot(sortdata,Pe,color=temp[0].get_c(),linewidth=2)
            # pleghand=pleghand+ptemp
            # pleglab=pleglab+[str(win)+'yrs']
-        ax2.set_ylabel(r'$\Delta g$ per time ($\mu$gal/time)',fontsize=18)
+        ax2.set_ylabel(r'$\Delta g$ per time ($\mu$Gal/time)',fontsize=18)
         ax2.set_xlabel('Time (years)',fontsize=18)    
         ax2.axis([0.0, 100,-200,150])
         ax3.yaxis.tick_right()
         ax3.yaxis.set_label_position("right")
         ax3.set_ylabel(r'Probability of Exceedance',fontsize=18)
-        ax3.set_xlabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
+        ax3.set_xlabel(r'$\Delta g$ ($\mu$Gal)',fontsize=18)
         ax3.locator_params(axis='x', nbins=5)
         #gax.boxplot(np.abs([windg['win_'+str(win)] for win in winlen]),positions=xp)
         xp=xp+0.2
@@ -1131,7 +1131,7 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
     xticks=np.arange(0,xmax,1)+0.5
     gax.xaxis.set_ticks(xticks)
     gax.xaxis.set_ticklabels(xlab[0:xmax])
-    gax.set_ylabel(r'$\Delta g$ ($\mu$gal)',fontsize=18)
+    gax.set_ylabel(r'$\Delta g$ ($\mu$Gal)',fontsize=18)
     gax.set_xlabel('Station',fontsize=18)
     gax.axes.legend(leghand[1:],leglab[1:],bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
             ncol=len(winlen), mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)

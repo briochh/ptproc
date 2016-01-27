@@ -35,7 +35,7 @@ else:
 
 x=np.arange(len(res[0]))
 color_idx = np.linspace(0, 5,6)
-xlab=['fl1','fl2','tp1','tp2','fl3','fl4','tp3','tp4']
+xlab=['flat1','flat2','topo1','topo2','flat3','flat4','topo3','topo4']
 
 f=plt.figure()
 n=0
@@ -85,7 +85,7 @@ with plt.style.context(('ggplot')):
     plt.bar(barlocs,[plt.yticks()[0][-1]-plt.yticks()[0][0]]*len(barlocs),bottom=plt.yticks()[0][0],color='lightgrey', width=1, edgecolor = "none")
     plt.xticks([0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5],xlab )
     plt.xlabel('Model')
-    plt.ylabel(r'Minimum and maximum $\Delta g$ ($\mu$gal)')
+    plt.ylabel(r'Minimum and maximum $\Delta g$ ($\mu$Gal)')
     
     lgd=f.legend(l, ('P1','P2','P3','P4','P5','P6'),ncol=6, bbox_to_anchor=[0.5, 0.95],loc='center')
 if save:

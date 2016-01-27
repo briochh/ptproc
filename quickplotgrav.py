@@ -21,7 +21,7 @@ import numpy as np
 plt.close('all')
 
 save='no'
-mod='20150814_4_var1'
+mod='20150806_4_var1'
 num=6
 
 
@@ -59,9 +59,9 @@ for station in xrange(1,num+1):
     axarr[ypo, xpo].axis([0.0, 100,-180,180])
     axarr2[ypo, xpo].axis([0.0, 100,-165,110])
 xlab=f.text(0.5, -0.02, 'Time (years)', ha='center',fontsize=18)
-ylab=f.text(-0.04, 0.5, r'$\Delta g$ ($\mu$gal)', va='center', rotation='vertical',fontsize=18) 
+ylab=f.text(-0.04, 0.5, r'$\Delta g$ ($\mu$Gal)', va='center', rotation='vertical',fontsize=18) 
 xlab2=f2.text(0.5, -0.02, 'Time (years)', ha='center',fontsize=18)
-ylab2=f2.text(-0.04, 0.5, r'$\Delta g$ ($\mu$gal)', va='center', rotation='vertical',fontsize=18) 
+ylab2=f2.text(-0.04, 0.5, r'$\Delta g$ ($\mu$Gal)', va='center', rotation='vertical',fontsize=18) 
 lgd=f.legend((l1,l2), ('Bouguer water table','Distibuted gravity'),ncol=2, bbox_to_anchor=[0.6, 1.04],loc='center')
 lgd2=f2.legend((l3,l4,l5), ('Reference Station','Benchmark P',r'Relative $\Delta g$'),ncol=3, bbox_to_anchor=[0.15, 1.04,0.85,0.01],loc='center',mode="expand", borderaxespad=0.)  
 f.tight_layout()
