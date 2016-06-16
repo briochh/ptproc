@@ -125,7 +125,8 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
                 infvol=True
                 initSG=10.9999
                 rocktype='bound'
-            if not radial and col in boundcol:
+#            if not radial and col in boundcol:
+            if col in boundcol:
                 print "inf vol boundary cell " + blk.name
                 infvol=True
                 initSG=0.0
@@ -553,12 +554,15 @@ def prod_flowmatrix(values,prelen=0):
 def convert2rate(matrix,times,Xlimits,Areas,Xlocs):
     timeseries=np.zeros(len(times))
     TotArea=0
+    #TotFlowArea=0
     i=0
     for t in times:
             for x,A,r in zip(Xlocs,Areas,matrix[i]):
-                if r > 0 and x < Xlimits[1] and x > Xlimits[0]:
-                    timeseries[i]= timeseries[i] + (r*A) # kg/s or W
+                if x < Xlimits[1] and x > Xlimits[0]:
                     if i==0: TotArea=TotArea+A
+                    if r > 0:
+                        timeseries[i]= timeseries[i] + (r*A) # kg/s or W
+                    #if i==0: TotArea=TotArea+A
             i+=1
     return timeseries,TotArea
 
@@ -592,15 +596,16 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
 #                    glacArea=glacArea+A
 #            i=i+1  
         meltrate_mmpyr= (meltrate*yrsec)/glacArea#((np.pi*(glaclim[1]**2))-(np.pi*(glaclim[0]**2))) # kg/yr/m2 ~ mm/yr 
-        meltvol=[rate*((tscale[i+1]-tscale[i])*yrsec)/1000. for rate,i in zip(meltrate,range(len(tscale)-2))]
-        meltvolcum=np.cumsum(meltvol)
-        basemeltlvol=meltrate[0]*(tscale*yrsec)/1000.+meltvolcum[0]
-        difmeltvolcum=np.subtract(meltvolcum,basemeltlvol[0:-2])
-        if difmeltvolcum.max() >=1.0e5:
-            ind=np.where(difmeltvolcum>=1e5)[0][0]
-            print "time when melt volume is 1e5 m3 =",tscale[ind]
-        else:
-            print "Melt volume never exceeds 1e5 m3"
+        meltvol=[rate*((tscale[i+1]-tscale[i])*yrsec)/1000. for rate,i in zip(meltrate,range(len(tscale)-2))] 
+        if len(tscale) > 2: # only  
+            meltvolcum=np.cumsum(meltvol)
+            basemeltlvol=meltrate[0]*(tscale*yrsec)/1000.+meltvolcum[0]
+            difmeltvolcum=np.subtract(meltvolcum,basemeltlvol[0:-2])
+            if difmeltvolcum.max() >=1.0e5:
+                ind=np.where(difmeltvolcum>=1e5)[0][0]
+                print "time when melt volume is 1e5 m3 =",tscale[ind]
+            else:
+                print "Melt volume never exceeds 1e5 m3"
         ####  plotsss
         if plot:
             plt.figure()
@@ -667,19 +672,19 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
     #        plt.tight_layout()
     #        if save:
     #            plt.savefig(mod+'_basalmelt.pdf')
-                
-            plt.figure()
-            plt.semilogy(tscale[0:-2],meltvolcum)
-            plt.plot(tscale,basemeltlvol)
-            plt.plot(tscale[0:-2],difmeltvolcum)
-            plt.xlim(0, 1000)
-            plt.ylim(0,1e7)
-            plt.xlabel('Time (yrs)')
-            plt.ylabel('cumulative melt volume')
-            #plt.title('Average basal meltrate')
-            plt.tight_layout()
-            if save:
-                plt.savefig(mod+'_basalmelt.pdf')
+            if len(tscale) > 2:    
+                plt.figure()
+                plt.semilogy(tscale[0:-2],meltvolcum)
+                plt.plot(tscale,basemeltlvol)
+                plt.plot(tscale[0:-2],difmeltvolcum)
+                plt.xlim(0, 1000)
+                plt.ylim(0,1e7)
+                plt.xlabel('Time (yrs)')
+                plt.ylabel('cumulative melt volume')
+                #plt.title('Average basal meltrate')
+                plt.tight_layout()
+                if save:
+                    plt.savefig(mod+'_basalmelt.pdf')
                 
             plt.figure()
             plt.plot(tscale,3600.*meltrate/20.)
