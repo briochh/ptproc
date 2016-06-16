@@ -20,7 +20,7 @@ t0=tinit=time.clock()
 plt.close('all')
 
 bmod=''#'Cota20150619_1/Cota20150619_1_ptb/'
-mod='Cota20150811_1_m2' # define model name
+mod='Cota20150810_1_m2' # define model name
 radial=True
 eos=3
 read=True ########### I N P U T #########################
@@ -28,7 +28,7 @@ readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
 readdat=True ########### I N P U T #########################
 dat_fname='flow2.inp'
-readresults=True########### I N P U T #########################
+readresults=False########### I N P U T #########################
 results_fname='flow2.out'
 readflow=True ########### I N P U T #########################
 #flowH_fname='results/FLOH.pkl'
@@ -39,7 +39,7 @@ save=False ########### I N P U T #########################
 savevtk=False ########### I N P U T #########################
 if eos==1:
     flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
-else: flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
+else: flows={'FLOH':{}}#,'FLO(LIQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
 #os.chdir(os.path.expanduser("~")+'/GoogleDrive/Cotopaxi/'+bmod+'/'+mod)
