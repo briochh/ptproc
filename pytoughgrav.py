@@ -544,17 +544,19 @@ def gen_variable(mod,geo,grid,dat,ts="C:/Users/glbjch/Local Documents/Work/Model
     gforplot=np.hstack(gforplot)
     Area=sum(Areas)
     fig,ax1=plt.subplots()
-    ax1.plot(tforplot/yrsec,gforplot/Area)
+    fig.set_size_inches(10,4)
+    ax1.plot(tforplot/yrsec,gforplot/Area,'k')
     ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
     ax1.set_ylabel(r'Generation rate (kg/s/m$^2$)')
     ax1.set_xlabel('Time (years)')
+    #ax1.set_aspect(10000)
     ax2=plt.twinx(ax1)
     print max(gforplot/Area)
     ax2.plot()
     ax1.set_xlim(0,100) 
     ax2.set_ylim(ax1.get_ylim()[0],ax1.get_ylim()[1]*3600*24)#(0,max(gforplot/Area)*3600*24)      
     ax2.set_ylabel(r'Equivalent recharge rate (mm/d)')
-    
+    fig.set_tight_layout(True)
     plt.savefig(mod+'/rech.pdf')
     np.savetxt(mod+'/genertot.txt',np.vstack((tforplot,gforplot)).T)
     return allgens,xs,zs,Areas,times
@@ -1137,7 +1139,7 @@ def grate( modelname, infiles, winlen=[2,5,10], save=True,
             ncol=len(winlen), mode="expand", borderaxespad=0.,fontsize=18,handletextpad=0)
     if save:
         fig2.savefig(mod+'_'+intype+'_grate_box.pdf',bbox_inches='tight')
-    return gax,bp
+    return windg,bp
 
     
     #return output               
