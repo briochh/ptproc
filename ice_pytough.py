@@ -86,7 +86,7 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
         else:
             rocktype = 'main '
             initP=(atmosP*spy.power(1.-(col.surface*2.25577e-5),5.25588))+(997.0479*9.81*abs(col.surface-blk.centre[2]))
-            if blk.centre[2]<4800:
+            if blk.centre[2]<5500:
                 initSG=0.0
             else:
                 initSG=10.3
@@ -94,7 +94,7 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
                 initT=Tmin + ((np.abs(hmax-blk.centre[2])/100.0)*12.5)
             else:            
                 initT=Tmin + 10.0 + ((np.abs(hmax-blk.centre[2])/100.0)*3.0)
-            if initT > 350.: initT=350.
+            if initT > 300.: initT=300.
             infvol=False
             if lay==geo.layerlist[-1]:
                 rocktype='sourc'
@@ -149,6 +149,10 @@ def pmxcalc(blk,grid,hmax,rock,Saar_lam=0.004,switch_depth=None):
 def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None, inject2=None):
     f = open(mod+'/Heat_genertot.txt','w')
     f.write('Model = '+mod+'\n')
+    if len(inject)>3: 
+        delay=inject[3]
+    else:
+        delay=0.0
     allgens=[]
     allinject=[]
     cols=[col for col in geo.columnlist]
@@ -190,7 +194,11 @@ def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None, inject2=None)
             if inject is not None:
                 if grid.block[blkname].centre[0] < inject[0]:
                     ixa=col.area*inject[1]
-                    gen=t2generator(name=' i'+col.name,block=blkname,type='COM1',gx=ixa, ex=inject[2]) # create a generater oject with the heat generation rate of tflux - muliplication by column area important. 
+                    if delay<>0.0:
+                        print('delayed generation input by %f seconds',delay) 
+                        gen=t2generator(name=' q'+col.name,block=blkname,type='COM1',gx=None,ex=None,hg=None,fg=None, rate=[0,ixa,ixa], enthalpy=[0,inject[2],inject[2]], time=[0,delay,1.0e6*365.25*3600*24], ltab=3,itab=2)
+                    else:
+                        gen=t2generator(name=' i'+col.name,block=blkname,type='COM1',gx=ixa, ex=inject[2]) # create a generater oject with the heat generation rate of tflux - muliplication by column area important. 
                     dat.add_generator(gen)
                     allinject.append(ixa)
     if inject2 is not None:

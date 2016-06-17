@@ -22,11 +22,12 @@ import copy
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Coto20160616_1'
+mod='Coto20160617_1'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
 #%%
+delay=200.0 #yrs
 yrsec=3600*365.25*24
 origin=[0,0,6000] # position of first cell in space
 width=1.0
@@ -129,7 +130,7 @@ top.capillarity=nocp
 top.specific_heat=1000.0
 rtypes=rtypes+[top]
 
-hp=rocktype('hp   ', nad=3, permeability = [perm]*2+[perm*10.],
+hp=rocktype('hp   ', nad=3, permeability = [perm]*2+[perm*10.0],
 porosity=poro) 
 hp.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
 hp.tortuosity=0.0
@@ -141,7 +142,7 @@ rtypes=rtypes+[hp] # add object to list of rocktypes
 
 hp2=copy.copy(hp)
 hp2.name='hp2  '
-hp2.permeability=np.array([10.*perm]*2+[perm])
+hp2.permeability=np.array([10.*perm]*2+[10.*perm])
 #rtypes=rtypes+[hp2]
 #rocktype('hp2  ', nad=3, permeability = [10.*perm]*2+[perm],
 #porosity=poro) 
@@ -184,7 +185,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,radial=radial)#, hpregion={'hp   ':[[0,0,3000],[250,0,6000]]})#,'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,radial=radial, hpregion={'hp   ':[[0,0,3000],[250,0,6000]], 'hp2':[[0,0,3000],[250,0,3100]]})#[[0,0,3000],[250,0,6000]]})#,'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 if radial: ptg.makeradial(geo,grid,width=width) 
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
@@ -195,22 +196,24 @@ if radial: ptg.makeradial(geo,grid,width=width)
 
 # additional output parameters 
 dat.parameter['max_timestep']=10*yrsec # maximum timstep length
-dat.parameter['print_interval']=100 # print (output) frequency to flow.out
+dat.parameter['print_interval']=50 # print (output) frequency to flow.out
 dat.parameter['timestep']=[1.0]#[1.0,1000.0] # initial timestep?
 dat.parameter['upstream_weight']=1.0
 dat.parameter['option'][11]=0 #mobilities are upstream weighted, permeability is harmonic weighted
 #dat.momop['option'][10]=1
-dat.output_times['time']=[1.0,3.1558e+08,3.1558e+09,3.1558e+10]#,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
+dat.output_times['time']=[1.0,3.1558e+08]#,3.1558e+08,3.1558e+09,3.1558e+10]#[1.0,1000.0,3.1558e+08,3.1558e+09,3.1558e+10] # predefined output times
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
-dat.output_times['num_times']=len(dat.output_times['time'])
+#dat.output_times['num_times']=len(dat.output_times['time'])
 #dat.parameter['tstop']=1E3*yrsec
 dat.output_times['num_times']=75
-dat.output_times['time_increment']= 500*yrsec
+dat.output_times['time_increment']= 50.*yrsec
+dat.parameter['option'][12]=0
+
 #dat.output_times['num_times']=50
 #dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,0.5e-3,1.67e6])#1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,0.5e-3,1.5e6,delay*yrsec])#1.67e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var',cfix=None)#enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   
