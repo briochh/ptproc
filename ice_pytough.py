@@ -149,7 +149,13 @@ def pmxcalc(blk,grid,hmax,rock,Saar_lam=0.004,switch_depth=None,limit=None):
         if pmx < limit: pmx=limit
     return pmx        
 
-def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None, inject2=None):
+def heatgen(mod,geo,dat,grid,heat_flux=0.24,function=None, inject=None, inject2=None):
+    """ 
+    Produce GENER information for heat flux and fluid injection.    
+    Define as constant heat_flux or use an exponetial or logarithmic function based on values at two x points.
+    Define radius of injection (for inject), rate in kg/s/m2 and enthalpy. 
+    Also can define injection zone (inject2) along axial boundary. 
+    """
     f = open(mod+'/Heat_genertot.txt','w')
     f.write('Model = '+mod+'\n')
     if len(inject)>3: 

@@ -33,8 +33,13 @@ class FixedOrderFormatter(mtick.ScalarFormatter):
 t0=tinit=time.clock()
 plt.close('all')
 
-
 save=True ########### I N P U T #########################
+#%% 
+""" Define which models are to be combined in single plots.
+
+Also define if models are 2D linear or axissymmetric 
+
+and if the colour scales are loagarthmic """
 modtype='FF'
 model='Coto20150911_1_m2' # model - set log to false if need to
 ptbrange=[1,2,3,4,5] # number of ptb models to plot
@@ -56,15 +61,15 @@ models=['ptb'+str(ptb) for ptb in ptbrange]#,model+'_rtn'] # array of models to 
 
 times={}
 ts=np.zeros(1)
-glaclim=[0.,2500.]
+glaclim=[0.,2500.] # define where the glacier is on the surface
 wd='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+model
 os.chdir(wd)
-flow='FLOH'
+flow='FLOH' # which flow to plot
 times=ptg.load_obj('results/time.pkl') # load time data from inital model pickle
 prelen=len(times) # length of inital model 
 
 #%% set up figures
-gs=gridspec.GridSpec(len(ptbrange), 2,wspace=0.02,width_ratios=[1,1]) # initalise grid
+gs=gridspec.GridSpec(len(ptbrange), 2,wspace=0.02,width_ratios=[1,1]) # initalise grid for plots
 combiplot=plt.figure(figsize=(8, 12)) 
 fmatter=mtick.ScalarFormatter(useMathText=True, useOffset=False) # setup sci format for plots
 fmatter.set_powerlimits((-2,4))

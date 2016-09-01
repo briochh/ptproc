@@ -5,9 +5,11 @@
 
 
 """
+Script for generating the ice melt models - based on Cotopaxi
+
 Created on Mon Mar  9 14:21:33 2015
 
-@author: molly
+@author: brioch
 """
 
 import ice_pytough as ipt
@@ -20,37 +22,42 @@ import pytoughgrav as ptg
 import copy
 
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-t0=time.clock()
+t0=time.clock() # set start time
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Coto20160706_1'
+mod='Coto20160706_1' # define model name
 print mod
+#creat model directory if necessary
 if not os.path.exists(mod):
     os.makedirs(mod)
-#%%
-delay=200.0 #yrs
-yrsec=3600*365.25*24
+#%% Definitions
+delay=200.0 # time dely before injection in years
+yrsec=3600*365.25*24 # define the number of seconds in a year.
 origin=[0,0,6000] # position of first cell in space
-width=1.0
+width=1.0 # width of 2D model (m is y direction)
+""" Define model layers and columns """
 zcells=[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*30+[25]*6+[10]*5 #[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*15+[100]*10+[50]*15+[25]*6+[10]*5#    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
 #xcells=[5]*12+[10]*254+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 xcells=[10]*6+[25]*100+[50]*10+[100]*9+[200,300,400,500,600,1]#,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
-radial=True #~~~~~~~~~~~~~~~~~~~~~~~~~~~!!!!!!!!!!!!!!!!!!!! 
-#if radial:
+radial=True # Specify is this is a 2D linear or 2D axisymmetric model~!!!!!!!!!!!!!!!!!!!! 
+#if radial: (Remenent of when 2D axisym was open to flow at distal edge)
 #    xcells=xcells[:-1]
-surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',headerlines=1,width=width)
+surf=ptg.topsurf('dev_files/Topography_crater_f.txt',delim='\t',
+                 headerlines=1,width=width) # create topographic surface of model from textfile
 
 geo=ipt.icegeo( mod, width=width, celldim=10., origin=origin,
-              zcells=zcells, xcells=xcells, surface=surf, atmos_type=1, min_thick=2.0)
+              zcells=zcells, xcells=xcells, surface=surf,
+              atmos_type=1, min_thick=2.0) # 
 
 #%%
+""" Start building TOUGH2 model """
 dat=t2data('dev_files/initialflow2.inp') # read from template file 
-dat.parameter['print_block']='dd 46' # define element to print in output - useful for loggin progress of TOUGH sim 
+dat.parameter['print_block']='dd 46' # define element to print in output - useful for loggin progress of TOUGH2 sim 
 dat.multi['num_equations']=3 # 3 defines non isothermal simulation
 
-perm=1.0e-14 # define permeability
+""" Define basic rock properties """
+perm=1.0e-14 # define surface permeability
 poro=0.1  # define porosity
-
 #rp={'type':1, 'parameters':[0.3,0.05,1.0,1.0]}
 #rp={'type':11, 'parameters':[0.1,0.0,1.0,0.5,0.0,None,1.0]} # relative permeability functions and parameters - if single phase not necessary  
 rp={'type':3, 'parameters':[0.3,0.05]}
@@ -61,15 +68,15 @@ norp={'type':5, 'parameters':[]} # no rel perm option
 cp={'type':1, 'parameters':[1e3,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
 nocp={'type':1, 'parameters':[0.0,0.0,1.0]} # no cp option
 scp={'type':1, 'parameters':[1e5,0.3,1.0]} # capillary pressure functions and parameters - if single phase not necessary
+conds=2.8 # thermal conductivity
+
+heat_flux=0.24 # basal heatflux - only used for uniform basal heat flux 
 
 
-conds=2.8
-heat_flux=0.24 #0.24
-
-# MAKE TOUGH GRID 
-
-
-#%% define rock types - this just generates rock types they are not necessarily assigned to elements - that happens later 
+#%%  
+""" define rock types - 
+this just generates rock types they are not necessarily
+ assigned to elements - that happens later """
 rtypes=[] # creates empty list
 dat.incon.clear()
 # define object name for rock type. e.g. hp is the python object 'main ' will be the name of the ROCK in TOUGH input file. THE SPACE IN THE NAME IS IMPORTANT - MUST BE 5 char!
@@ -130,8 +137,9 @@ top.capillarity=nocp
 top.specific_heat=1000.0
 rtypes=rtypes+[top]
 
-hp=rocktype('hp   ', nad=3, permeability = [perm]*2+[perm*10.0],
-porosity=poro) 
+# define object high permeability units
+hp=rocktype('hp   ', nad=3, permeability = [perm]*2+[perm*10.0], 
+porosity=poro) #z perm increased by order of mag
 hp.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
 hp.tortuosity=0.0
 hp.relative_permeability=rp # if single phase this has no effect
@@ -142,27 +150,13 @@ rtypes=rtypes+[hp] # add object to list of rocktypes
 
 hp2=copy.copy(hp)
 hp2.name='hp2  '
-hp2.permeability=np.array([10.*perm]*2+[10.*perm])
-#rtypes=rtypes+[hp2]
-#rocktype('hp2  ', nad=3, permeability = [10.*perm]*2+[perm],
-#porosity=poro) 
-#hp2.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
-#hp2.tortuosity=0.0
-#hp2.relative_permeability=rp # if single phase this has no effect
-#hp2.capillarity=cp # if single phase this has no effect
-#hp2.specific_heat=1000.0 # J/(kg K) from Hickey - cotapaxi
+hp2.permeability=np.array([10.*perm]*2+[10.*perm]) # vert and horizonal perm increased
 rtypes=rtypes+[hp2] # add object to list of rocktypes
 
 hp3=copy.copy(hp)
 hp3.name='hp3  '
+
 hp3.permeability=np.array([10.*perm]*2+[10*perm])
-#hp3=rocktype('hp3  ', nad=3, permeability = [10.*perm]*2+[10.*perm],
-#porosity=poro) 
-#hp3.conductivity= 4 #  M/(m K) from Hickey - cotapaxi
-#hp3.tortuosity=0.0
-#hp3.relative_permeability=rp # if single phase this has no effect
-#hp3.capillarity=cp # if single phase this has no effect
-#hp3.specific_heat=1000.0 # J/(kg K) from Hickey - cotapaxi
 rtypes=rtypes+[hp3] # add object to list of rocktypes
 
 # define rock types and add cp and rp params
@@ -175,25 +169,23 @@ rtypes=rtypes+[hp3] # add object to list of rocktypes
 #lp.specific_heat=1000.0 # J/(kg K) from Hickey - cotapaxi
 #rtypes=rtypes+[lp] # add object to list of rocktypes  - not used
 
-main.conductivity=b.conductivity=source.conductivity=top.conductivity=hp.conductivity=hp2.conductivity=hp3.conductivity=conds # reset all conductivities
+# overwrite all conductivities
+main.conductivity=b.conductivity=source.conductivity=top.conductivity=hp.conductivity=hp2.conductivity=hp3.conductivity=conds 
 #%%
-
-if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D model - NOTE: WILL NOT WORK FOR 3D
+""" find lateral boundaries in a 2D model 
+- NOTE: WILL NOT WORK FOR 3D """
+if np.size(geo.columnlist) > 1: 
    newlist=np.array([(col,col.centre[0]) for col in geo.columnlist])
    ecol=[newlist[newlist[:,1].argsort()][-1,0]]
    print ecol
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
+#%% make grid
 grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,radial=radial, hpregion={'hp   ':[[0,0,3000],[250,0,6000]]},kmin=1.0e-16)#[[0,0,3000],[250,0,6000]]})#,'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 if radial: ptg.makeradial(geo,grid,width=width) 
 
-## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
-#%%
-#~ Create sources and sinks GENER block in TOUGH input file.      
-#tflux=0.09 # J/m2/s example heat flux
-
-
+#%% 
 # additional output parameters 
 dat.parameter['max_timestep']=10*yrsec # maximum timstep length
 dat.parameter['print_interval']=50 # print (output) frequency to flow.out
@@ -212,10 +204,22 @@ dat.parameter['option'][12]=0
 #dat.output_times['num_times']=50
 #dat.output_times['time_increment']= 500*yrsec
 #
+#%%
+""" Add sources and sinks to GENER """   
+#tflux=0.09 # J/m2/s example heat flux
 dat.clear_generators()
+""" pass heat generation and fluid injection options to heatgen function.
+
+Define as constant heat_flux or use an exponetial or logarithmic function based on values at two x points.
+
+Define radius of injection (for inject), rate in kg/s/m2 and enthalpy. 
+
+Also can define injection zone (inject2) along axial boundary. """
 ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,0.5e-3,1.67e6,delay*yrsec])#1.5e6])
+# recharge
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var',cfix=None)#enthalpy=8440.)
 
+#%% write files
 geo.write(mod+'/grd.dat')   
 # Add data stored in grid object to pyTOUGH dat object - this is what gets turned into the TOUGH input file        
 dat.grid=grid
