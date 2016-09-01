@@ -36,7 +36,7 @@ def icegeo( modelname, length = 500., depth = 500., width = 1., celldim = 10.,
               zcells=zcells, xcells=xcells, surface=surface, atmos_type=atmos_type, min_thick=min_thick)
     return geo
 
-def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=None,satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004, glacier_limit=2500., infax=False, topsurf=None,radial=False):
+def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=None,satelev=0.0,atmosP=1.013e5,pmx_lamda=0.004, glacier_limit=2500., infax=False, topsurf=None,radial=False,kmin=1.0e-16):
     """
     Method for defining ice grid. Varies slightly from ptg method.
     """
@@ -86,15 +86,15 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
         else:
             rocktype = 'main '
             initP=(atmosP*spy.power(1.-(col.surface*2.25577e-5),5.25588))+(997.0479*9.81*abs(col.surface-blk.centre[2]))
-            if blk.centre[2]<5500:
+            if blk.centre[2]<5800.:
                 initSG=0.0
             else:
                 initSG=10.3
-            if blk.centre[0]<10000:
-                initT=Tmin + ((np.abs(hmax-blk.centre[2])/100.0)*12.5)
+            if blk.centre[0]<10000.:
+                initT=Tmin + 10.0 + ((np.abs(hmax-blk.centre[2])/100.0)*5.0)#Tmin + ((np.abs(hmax-blk.centre[2])/100.0)*12.5) #)
             else:            
-                initT=Tmin + 10.0 + ((np.abs(hmax-blk.centre[2])/100.0)*3.0)
-            if initT > 300.: initT=300.
+                initT=Tmin + 10.0 + ((np.abs(hmax-blk.centre[2])/100.0)*5.0)
+            if initT > 350.: initT=350.
             infvol=False
             if lay==geo.layerlist[-1]:
                 rocktype='sourc'
@@ -131,12 +131,13 @@ def icegrid(geo,dat,rocks,boundcol,eos=3,lpregion=None,hpregion=None,heatsource=
                 infvol=True
                 initSG=0.0
                 rocktype='bound'
-            pmx=pmxcalc(blk,grid,hmax,rocktype,0.004,800.)      
+            pmx=pmxcalc(blk,grid,hmax,rocktype,0.004,800.,limit=kmin)
+            if rocktype.startswith('hp') and pmx < kmin * 10.0: pmx = kmin * 10.0
         ptg.rockandincon(blk,grid,dat,rocktype,initP,initSG,initT,pmx,eos=eos,infvol=infvol)
     return grid
                 
     
-def pmxcalc(blk,grid,hmax,rock,Saar_lam=0.004,switch_depth=None):
+def pmxcalc(blk,grid,hmax,rock,Saar_lam=0.004,switch_depth=None,limit=None):
     depth=hmax-blk.centre[2]
     if switch_depth is not None:
         if depth < switch_depth:    
@@ -144,6 +145,8 @@ def pmxcalc(blk,grid,hmax,rock,Saar_lam=0.004,switch_depth=None):
         else: pmx=grid.rocktype[rock].permeability[0]*np.exp(-Saar_lam*(switch_depth))*((depth/switch_depth)**-3.2)
     else:
         pmx=grid.rocktype[rock].permeability[0]*np.exp(-Saar_lam*depth)
+    if limit is not None:
+        if pmx < limit: pmx=limit
     return pmx        
 
 def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None, inject2=None):
@@ -174,31 +177,33 @@ def heatgen(mod,geo,dat,grid,heat_flux,function=None, inject=None, inject2=None)
         func='Constant'
         f.write('Constant generation ='+str(heat_flux)+' J/s/m2\n')
     for col in cols:
-        lay=geo.layerlist[-1] # bottom layer
-        blkname=geo.block_name(lay.name,col.name) # get block name for the bottom layer of this column
-        if grid.block[blkname].hotcell is not True:
+        lay1=geo.layerlist[-1] # 4th from bottom layer
+        lay4=geo.layerlist[-4]
+        blkname1=geo.block_name(lay1.name,col.name)
+        blkname4=geo.block_name(lay4.name,col.name)# get block name for the bottom layer of this column
+        if grid.block[blkname1].hotcell is not True:
             if func=='exp':
-                heat_flux=a*spy.e**(b*grid.block[blkname].centre[0])
+                heat_flux=a*spy.e**(b*grid.block[blkname1].centre[0])
             elif func=='log':
                 #if grid.block[blkname].centre[0] < 250:
                 #    heat_flux=p1[1]
                 #else:
-                    heat_flux=a*spy.log(b*(grid.block[blkname].centre[0]))
+                    heat_flux=a*spy.log(b*(grid.block[blkname1].centre[0]))
             #gxa=[0.0]+[col.area*heat_flux]*2
             gxa=col.area*heat_flux
             #times=[0.]+[1000*365.25*3600*24]+[1.0e6*365.25*3600*24]
             #numt=len(times)
-            gen=t2generator(name=' H'+col.name,block=blkname,type='HEAT',gx=gxa, ex=None,hg=None,fg=None)#, rate=gxa, time=times, ltab=numt) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
+            gen=t2generator(name=' H'+col.name,block=blkname1,type='HEAT',gx=gxa, ex=None,hg=None,fg=None)#, rate=gxa, time=times, ltab=numt) # creat a generater oject with the heat generation rate of tflux - muliplication by column area important. 
             dat.add_generator(gen) # add generater to TOUGH2 input
             allgens.append(gxa)
             if inject is not None:
-                if grid.block[blkname].centre[0] < inject[0]:
+                if grid.block[blkname4].centre[0] < inject[0]:
                     ixa=col.area*inject[1]
                     if delay<>0.0:
                         print('delayed generation input by %f seconds',delay) 
-                        gen=t2generator(name=' q'+col.name,block=blkname,type='COM1',gx=None,ex=None,hg=None,fg=None, rate=[0,ixa,ixa], enthalpy=[0,inject[2],inject[2]], time=[0,delay,1.0e6*365.25*3600*24], ltab=3,itab=2)
+                        gen=t2generator(name=' q'+col.name,block=blkname4,type='COM1',gx=None,ex=None,hg=None,fg=None, rate=[0,ixa,ixa], enthalpy=[0,inject[2],inject[2]], time=[0,delay,1.0e6*365.25*3600*24], ltab=3,itab=2)
                     else:
-                        gen=t2generator(name=' i'+col.name,block=blkname,type='COM1',gx=ixa, ex=inject[2]) # create a generater oject with the heat generation rate of tflux - muliplication by column area important. 
+                        gen=t2generator(name=' i'+col.name,block=blkname4,type='COM1',gx=ixa, ex=inject[2]) # create a generater oject with the heat generation rate of tflux - muliplication by column area important. 
                     dat.add_generator(gen)
                     allinject.append(ixa)
     if inject2 is not None:
@@ -308,6 +313,7 @@ def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, 
     yrsec=365.25*3600*24
     mod=modelname
     glaclim=[250.,2500.]
+    craterlim=[0.,250.]
     if radial and not geo.radial:    
         ptg.makeradial(geo,None,width)
     # find atmosphere blocks
@@ -333,7 +339,7 @@ def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, 
         X,Area,qts = prod_flowmatrix(flows[flow].values())       
                 
         delref=np.array(qts.T[0]) # reference outflow at t0 kg/s/m2 ~ mm/s # mask where flow is negative (i.e. in to the model)
-        craterflowts,_ =convert2rate(qts.T,tscale,[0,250],Area,X)
+        craterflowts,_ =convert2rate(qts.T,tscale,craterlim,Area,X)
         glacflowts,_ =convert2rate(qts.T,tscale,glaclim,Area,X)
         
         
@@ -342,11 +348,11 @@ def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, 
             # compute meltrate in surface cells from heat out flow
             # some meltrate plots performed in this one
             calcmeltrate(mod,qts,delref,X,tscale,Area,
-                         glaclim=[250.,2500.],save=save) 
+                         glaclim=glaclim,save=save) 
         else:
             unit='kg/s'
             
-        plotflows(mod,flow,qts,X,tscale,Area,unit,delref,glaclim,save=save)
+        plotflows(mod,flow,qts,X,tscale,Area,unit,delref,glaclim,craterlim,save=save)
 #        # plottings
 
         if save:
@@ -365,7 +371,7 @@ def icepost( modelname, save=False, radial=True, savevtk=False, geom_data=None, 
         results.write_vtk(geo,mod+'_output.vtk',grid=grid,flows=True)
         #os.chdir('..')
     
-def plotflows(mod,flow,qts,X,tscale,Area,unit,ssqts,glaclim=[250.,2500.],save=True):
+def plotflows(mod,flow,qts,X,tscale,Area,unit,ssqts,glaclim=[250.,2500.],craterlim=[0.,250.],save=True):
     if ssqts is not None:
         dodelta=True
     else: 
@@ -377,9 +383,9 @@ def plotflows(mod,flow,qts,X,tscale,Area,unit,ssqts,glaclim=[250.,2500.],save=Tr
         ssqin=ssqts.clip(max=0)
         delqout=np.subtract(qout.T,ssqout) # kg/s/m2 ~ mm/s
         delqin=-np.subtract(qin.T,ssqin) 
-    craterflow=qts[X<glaclim[0]] # W/m2 or kg/s/m2
+    craterflow=qts[X<craterlim[1]] # W/m2 or kg/s/m2
     glacflow=qts[(X<glaclim[1]) & (X>glaclim[0])]   
-    craterflowts,_ =convert2rate(qts.T,tscale,[0,250],Area,X)
+    craterflowts,crater_Area =convert2rate(qts.T,tscale,craterlim,Area,X)
     glacflowts,glac_contactArea =convert2rate(qts.T,tscale,glaclim,Area,X)
 
     # plottings
@@ -434,24 +440,74 @@ def plotflows(mod,flow,qts,X,tscale,Area,unit,ssqts,glaclim=[250.,2500.],save=Tr
 
 
     crmesh=plt.figure()
-    plt.pcolormesh(X[X<glaclim[0]],tscale,np.ma.masked_array(craterflow,[craterflow<0]).T, rasterized=True,cmap='rainbow') # mm/s
+    plt.pcolormesh(X[X<craterlim[1]],tscale,np.ma.masked_array(craterflow,[craterflow<0]).T, rasterized=True,cmap='rainbow') # mm/s
     cbar=plt.colorbar(format='%.1e')
     cbar.set_label('Flow ('+flow+') at crater')
-    plt.xlim((0,glaclim[0]))
+    plt.xlim((0,craterlim[1]))
     plt.ylim(tscale.min(),tscale.max())
     plt.title('Crater flow ('+flow+')')
     
-    crts=plt.figure()
-    plt.plot(tscale,craterflowts)
+    crts,ax1=plt.subplots()
+    plot_ax1, = ax1.plot(tscale,craterflowts,'g')
+    ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
     #plt.xlim(0.08, 100)
     #plt.ylim(craterflowts.min(),craterflowts.max()) #!!!!!!!!
-    plt.xlabel('Time (yrs)')
-    plt.ylabel('Crater Flow ('+unit+')')
-    plt.title('Crater flow ('+flow+')')
+    ax1.set_xlabel('Time (yrs)')
+    ax1.set_ylabel('Crater Flow ('+unit+')')
+    ax1.tick_params(axis='y', colors=plot_ax1.get_color())
+    ax1.yaxis.label.set_color(plot_ax1.get_color())
+    ax1.spines['left'].set_color(plot_ax1.get_color())
+    ax1.yaxis.get_offset_text().set_color(plot_ax1.get_color())
+    ax2=plt.twinx(ax1)
+    plot_ax2, = ax2.plot(tscale,craterflowts/crater_Area,'g--')
+    ax1.set_xlim(0, 10)
+    #ax1.set_ylim(0, 5.0e5)
+    #ax2.set_ylim(0, 2.5e-2)
+    #ax2.set_ylim(0, 250)
+    ax2.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,3))
+    ax2.tick_params(axis='y', colors=plot_ax2.get_color())
+    ax2.yaxis.label.set_color(plot_ax2.get_color())
+    ax2.spines['right'].set_color(plot_ax2.get_color())  
+    ax2.yaxis.get_offset_text().set_color(plot_ax2.get_color())
+    ax2.set_ylabel(r'Crater Surface Flux ('+ unit + r'm$^{-2}$)')
+#    plt.xlabel('Time (yrs)')
+#    plt.ylabel('Crater Flow ('+unit+')')
+#    plt.title('Crater flow ('+flow+')')
     if save:
         crts.savefig(mod+'_'+flow+'_crater_ts.pdf',dpi=400)
         crmesh.savefig(mod+'_'+flow+'_craterflow.pdf',dpi=400) 
         np.savetxt(mod+'_'+flow+'_CraterFlow.txt',np.vstack(([tscale],[craterflowts])).T)
+        
+    allts,ax1=plt.subplots()
+    #plot_ax1, = ax1.plot(tscale,glacflowts)
+    #plot_ax1, = ax1.plot(tscale,craterflowts)
+    plot_ax1, = ax1.plot(tscale,(craterflowts+glacflowts),'r')
+    ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
+    #plt.ylim(craterflowts.min(),craterflowts.max()) #!!!!!!!!
+    ax1.set_xlabel('Time (yrs)')
+    ax1.set_ylabel('Flow ('+unit+')')
+    ax1.tick_params(axis='y', colors=plot_ax1.get_color())
+    ax1.yaxis.label.set_color(plot_ax1.get_color())
+    ax1.spines['left'].set_color(plot_ax1.get_color())
+    ax1.yaxis.get_offset_text().set_color(plot_ax1.get_color())
+    ax2=plt.twinx(ax1)
+    #plot_ax2, = ax2.plot(tscale,glacflowts/glac_contactArea,'b--')
+    #plot_ax2, = ax2.plot(tscale,craterflowts/crater_Area,'g--')
+    plot_ax2, = ax2.plot(tscale,(glacflowts+craterflowts)/(glac_contactArea+crater_Area),'r--')
+    ax1.set_xlim(0, 10)
+    #ax1.set_ylim(0, 5.0e5)
+    #ax2.set_ylim(0, 2.5e-2)
+    #ax2.set_ylim(0, 250)
+    ax2.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,3))
+    ax2.tick_params(axis='y', colors=plot_ax2.get_color())
+    ax2.yaxis.label.set_color(plot_ax2.get_color())
+    ax2.spines['right'].set_color(plot_ax2.get_color())  
+    ax2.yaxis.get_offset_text().set_color(plot_ax2.get_color())
+    ax2.set_ylabel(r'Surface Flux ('+ unit + r'm$^{-2}$)')
+    #plt.title('Glacier flow ('+flow+')')
+    if save:
+        allts.savefig(mod+'_'+flow+'_all_ts.pdf',dpi=400) 
+        np.savetxt(mod+'_'+flow+'_allFlow.txt',np.vstack(([tscale],[craterflowts],[glacflowts],[glacflowts+craterflowts])).T)
         
     vmax=5.0 # allow quick change colour limit
     #vmax=320
@@ -475,16 +531,16 @@ def plotflows(mod,flow,qts,X,tscale,Area,unit,ssqts,glaclim=[250.,2500.],save=Tr
     ax1.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,2))
     #plt.ylim(craterflowts.min(),craterflowts.max()) #!!!!!!!!
     ax1.set_xlabel('Time (yrs)')
-    ax1.set_ylabel('Glacier Flow ('+unit+')')
+    ax1.set_ylabel('Flank Flow ('+unit+')')
     ax1.tick_params(axis='y', colors=plot_ax1.get_color())
     ax1.yaxis.label.set_color(plot_ax1.get_color())
     ax1.spines['left'].set_color(plot_ax1.get_color())
     ax1.yaxis.get_offset_text().set_color(plot_ax1.get_color())
     ax2=plt.twinx(ax1)
-    plot_ax2, = ax2.plot(tscale,glacflowts/glac_contactArea,'g')
-    ax1.set_xlim(0, 1000)
-    ax1.set_ylim(0, 7.0e5)
-    ax2.set_ylim(0, 3.5e-2)
+    plot_ax2, = ax2.plot(tscale,glacflowts/glac_contactArea,'b--')
+    ax1.set_xlim(0, 10)
+    #ax1.set_ylim(0, 1.1e7)
+    #ax2.set_ylim(0, 0.6)
     #ax2.set_ylim(0, 250)
     ax2.ticklabel_format(axis='y', style = 'sci', useOffset=False, scilimits=(-2,3))
     ax2.tick_params(axis='y', colors=plot_ax2.get_color())
@@ -685,8 +741,8 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
                 plt.semilogy(tscale[0:-2],meltvolcum)
                 plt.plot(tscale,basemeltlvol)
                 plt.plot(tscale[0:-2],difmeltvolcum)
-                plt.xlim(0, 1000)
-                plt.ylim(0,1e7)
+                plt.xlim(0, 2)
+                plt.ylim(0,1e9)
                 plt.xlabel('Time (yrs)')
                 plt.ylabel('cumulative melt volume')
                 #plt.title('Average basal meltrate')
@@ -695,7 +751,7 @@ def calcmeltrate(mod,qts,ssqts,X,tscale,Area,glaclim=[250,2500],save=True,logt=F
                     plt.savefig(mod+'_basalmelt.pdf')
                 
             plt.figure()
-            plt.plot(tscale,3600.*meltrate/20.)
+            plt.plot(tscale,3600.*meltrate/1000.)
             plt.xlim(0, 25)
             #plt.ylim(0,4.5e7) #!!!!!!!!
             plt.xlabel('Time (yrs)')

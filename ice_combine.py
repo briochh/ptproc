@@ -16,24 +16,37 @@ import time
 import ice_pytough as ipt
 import copy
 import matplotlib.colors
-from matplotlib.ticker import LogLocator, ScalarFormatter, MaxNLocator
+import matplotlib.ticker as mtick
 import matplotlib.gridspec as gridspec
+
+class FixedOrderFormatter(mtick.ScalarFormatter):
+    """Formats axis ticks using scientific notation with a constant order of
+    magnitude"""
+    def __init__(self, order_of_mag=0, useOffset=True, useMathText=False):
+        self._order_of_mag = order_of_mag
+        mtick.ScalarFormatter.__init__(self, useOffset=useOffset,
+                                 useMathText=useMathText)
+    def _set_orderOfMagnitude(self, range):
+        """Over-riding this to avoid having orderOfMagnitude reset elsewhere"""
+        self.orderOfMagnitude = self._order_of_mag
 
 t0=tinit=time.clock()
 plt.close('all')
-#save=True ########### I N P U T #########################
-#modtype='FF'
-#model='Coto20150911_1_m2' # model - set log to false if need to
-#ptbrange=[1,2,3,4,5] # number of ptb models to plot
-#log=False # use params for log colour in LHS
+
+
+save=True ########### I N P U T #########################
+modtype='FF'
+model='Coto20150911_1_m2' # model - set log to false if need to
+ptbrange=[1,2,3,4,5] # number of ptb models to plot
+log=True # use params for log colour in LHS
 #modtype='HPC1'
 #model='Cota20150810_1_m2' # model - set log to false if need to
 #ptbrange=[1,2,3,4] # number of ptb models to plot
 #log=True # use params for log colour in LHS
-modtype='HPC2'
-model='Cota20150811_1_m2' # model - set log to false if need to
-ptbrange=[1,2,3,4] # number of ptb models to plot
-log=True # use params for log colour in LHS
+#modtype='HPC2'
+#model='Cota20150811_1_m2' # model - set log to false if need to
+#ptbrange=[1,2,3,4] # number of ptb models to plot
+#log=True # use params for log colour in LHS
 #
 
 #ptbcodes=['A','B','C','D','E']
@@ -43,7 +56,7 @@ models=['ptb'+str(ptb) for ptb in ptbrange]#,model+'_rtn'] # array of models to 
 
 times={}
 ts=np.zeros(1)
-glaclim=[250.,2500.]
+glaclim=[0.,2500.]
 wd='C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi/'+model
 os.chdir(wd)
 flow='FLOH'
@@ -53,8 +66,10 @@ prelen=len(times) # length of inital model
 #%% set up figures
 gs=gridspec.GridSpec(len(ptbrange), 2,wspace=0.02,width_ratios=[1,1]) # initalise grid
 combiplot=plt.figure(figsize=(8, 12)) 
-fmatter=ScalarFormatter(useMathText=True) # setup sci format for plots
+fmatter=mtick.ScalarFormatter(useMathText=True, useOffset=False) # setup sci format for plots
 fmatter.set_powerlimits((-2,4))
+
+
 cbarax=combiplot.add_axes([0.13, 0.93, 0.35, 0.02]) # create color bar axis at top
 combiplot200=plt.figure(figsize=(8, 12)) # zoomed in figure
 cbarax200=combiplot200.add_axes([0.13, 0.93, 0.35, 0.02]) # create color bar axis at top
@@ -82,10 +97,10 @@ for ptb,ax in zip(models,ptbrange):
     
     #%%### LHS of full plot
     if log:
-        vmax=5.0 # allow quick change colour limit
+        vmax=None#4.0e3#1.0 # allow quick change colour limit
         vmin=1.0e-2
     else: 
-        vmax=320
+        vmax=None#320
         vmin=0
         
     xlims=[0,2.5]
@@ -117,11 +132,13 @@ for ptb,ax in zip(models,ptbrange):
     ax2=plt.twinx(ax1)
     plot_ax2, = ax2.plot(tscale,glacflowts/glac_contactArea,'g')
     #tlims=[0,1000]    
-    ylims1=[0, 7.0e5]
+    
     if modtype=='FF':
         ylims2=[0, 250]
+        ylims1=[0, 6.0e5]
     else:
-        ylims2=[0, 3.5e-2]
+        ylims2=[0,4.5]#[0, 3.5e-2]
+        ylims1=[0,9.0e7]#[0, 7.0e5]
     #
     ax1.set_xlim(tlims)
     ax1.set_ylim(ylims1)
@@ -156,20 +173,28 @@ for ptb,ax in zip(models,ptbrange):
     ax200.set_ylim(tlims)
 
     #%RHS
-    ylims1=[0, 5.0e5]
     if modtype=='FF':
         ylims2=[0, 250]
+        ylims1=[0, 6.0e5]#7.0e5]
     else:
-        ylims2=[0, 2.5e-2]
+        ylims2=[0,4.5]#[0, 3.5e-2]
+        ylims1=[0,9.0e7]#[0, 7.0e5]
     #
     ax2001=combiplot200.add_subplot(gs[(ax*2)-1])
     plot_ax1, = ax2001.plot(tscale,glacflowts)
 
-    ax2001.yaxis.set_major_formatter(fmatter)
+
+    
+    
 #    #plt.ylim(craterflowts.min(),craterflowts.max()) #!!!!!!!!
 #    
-#    
-#
+    ax2001.set_ylim(ylims1) 
+    if ylims1[1] is not None:
+        ax2001.yaxis.set_major_formatter(FixedOrderFormatter(np.floor(np.log10(ylims1[1])), useOffset=False, useMathText=True))
+    else:
+        ax2001.yaxis.set_major_formatter(fmatter)
+    ax2001.yaxis.set_major_locator(mtick.MaxNLocator(nbins=5))
+    #ax2001.yaxis.get_major_formatter(mtick.FormatStrFormatter('%0.0f'))
     ax2001.tick_params(axis='y', colors=plot_ax1.get_color())
     ax2001.yaxis.label.set_color(plot_ax1.get_color())
     ax2001.spines['left'].set_color(plot_ax1.get_color())
@@ -177,8 +202,10 @@ for ptb,ax in zip(models,ptbrange):
     ax2002=plt.twinx(ax2001)
     plot_ax2, = ax2002.plot(tscale,glacflowts/glac_contactArea,'g')
     ax2001.set_xlim(tlims)
-    ax2001.set_ylim(ylims1)
+
+
     ax2002.set_ylim(ylims2)
+    ax2002.yaxis.set_major_locator(mtick.MaxNLocator(nbins=5))
     ax2002.yaxis.set_major_formatter(fmatter)
     ax2002.tick_params(axis='y', colors=plot_ax2.get_color())
     ax2002.yaxis.label.set_color(plot_ax2.get_color())
@@ -225,23 +252,23 @@ for ptb,ax in zip(models,ptbrange):
 
 if log:
     cbar=combiplot.colorbar(lhim,cax=cbarax,orientation='horizontal',
-                            ticks=LogLocator(subs=range(10)))
+                            ticks=mtick.LogLocator(subs=range(10)))
     cbar.set_label(r'Heat-flux into glacier ('+ unit + r'm$^{-2}$)', labelpad=-55)
     cbar200=combiplot200.colorbar(im, cax=cbarax200, orientation='horizontal',
-                              ticks=LogLocator(subs=range(10)))#,format=fmat+'e')
+                              ticks=mtick.LogLocator(subs=range(10)))#,format=fmat+'e')
     cbar200.set_label(r'Heat-flux into glacier ('+ unit + r'm$^{-2}$)', labelpad=-55)                                 
 else:
     cbar=combiplot.colorbar(lhim,cax=cbarax,orientation='horizontal')
     cbar.set_label(r'Heat-flux into glacier ('+ unit + r'm$^{-2}$)', labelpad=-50)
-    cbar.locator=MaxNLocator(nbins=5)
+    cbar.locator=mtick.MaxNLocator(nbins=5)
     cbar.update_ticks()
     cbar200=combiplot200.colorbar(im, cax=cbarax200, orientation='horizontal')
-    cbar200.locator=MaxNLocator(nbins=5)
+    cbar200.locator=mtick.MaxNLocator(nbins=5)
     cbar200.update_ticks()
     cbar200.set_label(r'Heat-flux into glacier ('+ unit + r'm$^{-2}$)', labelpad=-50) 
 
 
 if save:
-    combiplot.savefig(model+'combiplot.pdf',dpi=400,bbox_inches='tight')
-    combiplot200.savefig(model+'combiplot200.pdf',dpi=400,bbox_inches='tight')
+    combiplot.savefig(model+'combiplotplus.pdf',dpi=400,bbox_inches='tight')
+    combiplot200.savefig(model+'combiplotplus200.pdf',dpi=400,bbox_inches='tight')
 

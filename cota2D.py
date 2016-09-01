@@ -22,7 +22,7 @@ import copy
 #%% Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 t0=time.clock()
 os.chdir("C:\Users\glbjch\Local Documents\Work\Modelling\Cotapaxi") # define working directory
-mod='Coto20160617_1'
+mod='Coto20160706_1'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -31,7 +31,7 @@ delay=200.0 #yrs
 yrsec=3600*365.25*24
 origin=[0,0,6000] # position of first cell in space
 width=1.0
-zcells=[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*30+[25]*6+[10]*5    #+[100]*6+[50]*10+[10]*20    
+zcells=[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*30+[25]*6+[10]*5 #[10]*35+[5]*5+[2]*20+[5]*5+[10]*86+[50]*15+[100]*10+[50]*15+[25]*6+[10]*5#    #+[100]*6+[50]*10+[10]*20    
 dy=1 # size of cell in y direction
 #xcells=[5]*12+[10]*254+[50]*27+[100,200,300,400,500,600,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
 xcells=[10]*6+[25]*100+[50]*10+[100]*9+[200,300,400,500,600,1]#,700,800,900,1000]  #+[100]*6+[50]*10+[10]*20
@@ -48,7 +48,7 @@ dat=t2data('dev_files/initialflow2.inp') # read from template file
 dat.parameter['print_block']='dd 46' # define element to print in output - useful for loggin progress of TOUGH sim 
 dat.multi['num_equations']=3 # 3 defines non isothermal simulation
 
-perm=5.0e-14 # define permeability
+perm=1.0e-14 # define permeability
 poro=0.1  # define porosity
 
 #rp={'type':1, 'parameters':[0.3,0.05,1.0,1.0]}
@@ -121,7 +121,7 @@ hotcell.specific_heat=1000.0
 rtypes=rtypes+[hotcell]
 
 # define object for atmosphere
-top=rocktype('top  ', nad=3, density=1.225, permeability = [perm]*2+[perm],
+top=rocktype('top  ', nad=3, density=1.225, permeability = [50.*perm]*2+[50.*perm],
 porosity=poro)
 top.conductivity=4 
 top.tortuosity=0.0
@@ -185,7 +185,7 @@ if np.size(geo.columnlist) > 1: # can be used to find lateral boundaries in a 2D
 else: # if the column list length is only 1 then there can be no lateral boundary.
     ecol=[] # set boundary columns to none
 
-grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,radial=radial, hpregion={'hp   ':[[0,0,3000],[250,0,6000]], 'hp2':[[0,0,3000],[250,0,3100]]})#[[0,0,3000],[250,0,6000]]})#,'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
+grid=ipt.icegrid(geo,dat,rtypes,ecol,infax=False,radial=radial, hpregion={'hp   ':[[0,0,3000],[250,0,6000]]},kmin=1.0e-16)#[[0,0,3000],[250,0,6000]]})#,'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#, 'hp2  ':[[720,0,3000],[780,0,6000]]})#[[0,0,3000],[250,0,5250]],'hp2  ':[[250,0,5250],[2000,0,6000]],'hp3  ':[[0,0,5250],[250,0,6000]]})#,heatsource=[[0,0,3000],[1500,0,3050]])
 if radial: ptg.makeradial(geo,grid,width=width) 
 
 ## Create TOUGH input file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
@@ -213,7 +213,7 @@ dat.parameter['option'][12]=0
 #dat.output_times['time_increment']= 500*yrsec
 #
 dat.clear_generators()
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,0.5e-3,1.5e6,delay*yrsec])#1.67e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,0.5e-3,1.67e6,delay*yrsec])#1.5e6])
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var',cfix=None)#enthalpy=8440.)
 
 geo.write(mod+'/grd.dat')   

@@ -21,9 +21,9 @@ plt.close('all')
 #%%
 os.chdir('C:/Users/glbjch/Local Documents/Work/Modelling/Cotapaxi')
 
-
-basemod='Coto20150911_1_m2'
-mod=basemod+'_ptb5'
+FF=False ###### NOW CHECK INJECTION
+basemod='Coto20160626_2'
+mod=basemod+'_ptb6_1'
 print mod
 if not os.path.exists(mod):
     os.makedirs(mod)
@@ -32,19 +32,22 @@ dat=t2data(basemod+'/flow2.inp')
 geo=mulgrid(basemod+'/grd.dat')
 grid=dat.grid
 width=geo.bounds[1][1]-geo.bounds[0][1]
-#ptg.makeradial(geo,None,width) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+if not FF: ptg.makeradial(geo,None,width) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-yrsec=365.25*3600*24    
+yrsec=365.25*3600.*24.    
 # INCON
 # change initial conditions from base model SAVE file
 dat.incon.clear()
 inc=t2incon(basemod + '/flow2.sav')
 for blk in inc.blocklist:
+    if inc[blk][2] > 350.: 
+        inc[blk][2]=350.    
     dat.incon[blk]=[None,inc[blk][0:]]
+
 dat.parameter['option'][12]= 0
 dat.parameter['timestep']=[1.0, 1.0E3,8.6400e+04]
 dat.output_times['time']=[1.0]
-dat.output_times['time_increment']= 10*yrsec
+dat.output_times['time_increment']= 10.*yrsec
 
 dat.output_times['num_times_specified']=len(dat.output_times['time'])
 dat.output_times['num_times']=200
@@ -52,35 +55,46 @@ dat.parameter['max_timestep']=1*yrsec # maximum timstep length
 dat.parameter['print_interval']=50 # print (output) frequency to flow.out
 dat.parameter['tstop']=1E3*yrsec
 
-main=grid.rocktype['main ']
-main.permeability=main.permeability*5
+if FF: 
+    main=grid.rocktype['main ']
+    main.permeability=main.permeability*10
 
-for blk in grid.blocklist:
-    if blk.rocktype.name == 'main ':
-        #blk.pmx
-        blk.pmx=blk.pmx*5
-        #blk.pmx
-#hp=grid.rocktype['hp   ']
-#hp3=copy.copy(hp)
-#hp3.name='hp3  '
-#hp3.permeability=np.array([10.*perm]*2+[10*perm])
-#grid.add_rocktype(hp3)
+    for blk in grid.blocklist:
+        if blk.rocktype.name == 'main ':
+            #blk.pmx
+            blk.pmx=blk.pmx*10
+            #blk.pmx
 
-#hp3=grid.rocktype['hp3  ']
+if not FF:
+    hp=grid.rocktype['hp   ']
+    #hp3=copy.copy(hp)
+    #hp3.name='hp3  '
+    #hp3.permeability=np.array([10.*perm]*2+[10*perm])
+    #grid.add_rocktype(hp3)
 
-#hp.permeability=hp.permeability*5
-#hp3.permeability=hp3.permeability*5
+    #hp3=grid.rocktype['hp3  ']
 
-#for blk in grid.blocklist:
-#    if blk.rocktype.name in ['hp   ','hp3  ']:
-        #blk.pmx
-#        blk.pmx=blk.pmx*5
-        #blk.pmx
+    hp.permeability=hp.permeability*([100,100,10])
+    #hp3.permeability=hp3.permeability*5
+
+    for blk in grid.blocklist:
+        if (blk.centre[2] > 3000. and 
+            blk.centre[2] <= 3200. and 
+            blk.centre[0] > 0. and 
+            blk.centre[0] <= 750.): #if in hp region
+            blk.rocktype = grid.rocktype['hp   ']
+            print blk.name
+            print blk.rocktype.name
+        if blk.rocktype.name in ['hp   ','hp3  ']:
+            #blk.pmx
+            blk.pmx=blk.pmx*100.
+            #blk.pmx
 
 dat.clear_generators()
 heat_flux=0.24
 for blk in grid.blocklist[0:]: blk.hotcell=False
-ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[300,2.0e-3,1.67e6])#, inject2=[4500,5000,0.5e-3,1.67e6])
+#ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[150,0.5e-3,1.67e6])#,delay*yrsec])#1.5e6])
+ipt.heatgen(mod,geo,dat,grid,heat_flux,function={'type':'log','points':[[5.0,1.],[10000.,0.24]]},inject=[500,1.0e-3,1.67e6], inject2=[4500,5000,0.5e-3,1.67e6])#,  1.67e6 )
 ptg.gen_constant(mod,geo,grid,dat,constant=1.5e-5,enthalpy='var',cfix=None)#enthalpy=8440.)
 
 

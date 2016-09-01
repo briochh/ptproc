@@ -20,7 +20,7 @@ t0=tinit=time.clock()
 plt.close('all')
 
 bmod=''#'Cota20150619_1/Cota20150619_1_ptb/'
-mod='Coto20160616_1' # define model name
+mod='Coto20160627_1_ptb6_1' # define model name
 radial=True
 eos=3
 read=True ########### I N P U T #########################
@@ -28,18 +28,18 @@ readgeo=True ########### I N P U T #########################
 geo_fname='grd.dat'
 readdat=True ########### I N P U T #########################
 dat_fname='flow2.inp'
-readresults=True########### I N P U T #########################
+readresults=False########### I N P U T #########################
 results_fname='flow2.out'
 readflow=True ########### I N P U T #########################
 #flowH_fname='results/FLOH.pkl'
 #readflowF=True ########### I N P U T #########################
 #flowF_fname='results/FLOLIQ.pkl'
 
-save=True ########### I N P U T #########################
-savevtk=True ########### I N P U T #########################
+save=False ########### I N P U T #########################
+savevtk=False ########### I N P U T #########################
 if eos==1:
     flows={'FHEAT':{},'FLO(AQ.)':{},'FLO(GAS)':{}}
-else: flows={'FLOH':{},'FLO(LIQ.)':{},'FLO(GAS)':{}}
+else: flows={'FLOH':{}}#,'FLO(LIQ.)':{},'FLO(GAS)':{}}
 
 print 'model=',mod
 #os.chdir(os.path.expanduser("~")+'/GoogleDrive/Cotopaxi/'+bmod+'/'+mod)
